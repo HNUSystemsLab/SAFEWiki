@@ -1,0 +1,16 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>CVE - 分类 - 安全维基</title>
+        <link>/categories/cve/</link>
+        <description>CVE - 分类 - 安全维基</description>
+        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><managingEditor>admin@gmail-1.com (admin)</managingEditor>
+            <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate><atom:link href="/categories/cve/" rel="self" type="application/rss+xml" /><item>
+    <title>CVE: 2022-0847 The Dirty Pipe Vulnerability</title>
+    <link>/posts/5-cve/cve-2022-0847-the-dirty-pipe-vulnerability/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/5-cve/cve-2022-0847-the-dirty-pipe-vulnerability/</guid>
+    <description><![CDATA[CVE-2022-0847: The Dirty Pipe Vulnerability CVE-2022-0847: The Dirty Pipe Vulnerability 1 漏洞描述 2 触发原因 2.1 页面缓存Page Cache 2.2 管道pipe 2.3 splice()到copy_page_to_iter_pipe(]]></description>
+</item>
+</channel>
+</rss>

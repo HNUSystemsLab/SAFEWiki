@@ -1,0 +1,16 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>测试工具 - 标签 - 安全维基</title>
+        <link>/tags/%E6%B5%8B%E8%AF%95%E5%B7%A5%E5%85%B7/</link>
+        <description>测试工具 - 标签 - 安全维基</description>
+        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><managingEditor>admin@gmail-1.com (admin)</managingEditor>
+            <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate><atom:link href="/tags/%E6%B5%8B%E8%AF%95%E5%B7%A5%E5%85%B7/" rel="self" type="application/rss+xml" /><item>
+    <title>测试工具 </title>
+    <link>/posts/4-%E6%B5%8B%E8%AF%95%E5%B7%A5%E5%85%B7/%E6%B5%8B%E8%AF%95%E5%B7%A5%E5%85%B7/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/4-%E6%B5%8B%E8%AF%95%E5%B7%A5%E5%85%B7/%E6%B5%8B%E8%AF%95%E5%B7%A5%E5%85%B7/</guid>
+    <description><![CDATA[Tool(s) Required： All of the tools used are free and could be downloaded from the URLs below. Immunity Debugger: download Kali Linux: download CFF Explorer: download PE-bear: download Ghidra: download IDA Free/Demo: download x64dbg: download Microsoft SysInternals Suite: download CAPA by FireEye FLARE Team: download NetCat: download Others! 攻击类型全面，但是ppt片段]]></description>
+</item>
+</channel>
+</rss>

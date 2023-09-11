@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>安全书籍 - 安全维基</title><meta name="Description" content="分享安全技术"><meta property="og:title" content="安全书籍" />
+<meta property="og:description" content="##一种基于USB设备的安全攻击———BadUSB [toc] 1 背景与原理 USB作为一种即插即用的工具，在给人们提供便利的同时，也带来了很多安全威胁。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
+<meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="安全书籍"/>
+<meta name="twitter:description" content="##一种基于USB设备的安全攻击———BadUSB [toc] 1 背景与原理 USB作为一种即插即用的工具，在给人们提供便利的同时，也带来了很多安全威胁。"/>
+<meta name="application-name" content="湖南大学安全Wiki">
+<meta name="apple-mobile-web-app-title" content="湖南大学安全Wiki"><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="../../../favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/" /><link rel="prev" href="../../../posts/3-%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/" /><link rel="next" href="../../../posts/2-linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8/linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8-part-3-%E5%89%AF%E6%9C%AC/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css"></noscript><link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "安全书籍",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "\/posts\/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D\/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D\/"
+        },"genre": "posts","keywords": "安全书籍","wordcount":  3736 ,
+        "url": "\/posts\/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D\/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D\/","datePublished": "2023-02-05T15:36:08+08:00","dateModified": "2023-02-05T15:36:08+08:00","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "admin"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('auto' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'auto' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="../../../categories/"> 所有分类 </a><a class="menu-item" href="../../../posts/"> 文章 </a><a class="menu-item" href="../../../tags/"> 标签 </a><a class="menu-item" href="../../../about/"> 关于 </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="../../../categories/" title="">所有分类</a><a class="menu-item" href="../../../posts/" title="">文章</a><a class="menu-item" href="../../../tags/" title="">标签</a><a class="menu-item" href="../../../about/" title="">关于</a><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">目录</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">安全书籍</h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="../../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-category">收录于 <a href="../../../categories/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>安全书籍</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2023-02-05">2023-02-05</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 3736 字&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;预计阅读 8 分钟&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>目录</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#1-背景与原理">1 背景与原理</a></li>
+        <li><a href="#2-准备阶段">2 准备阶段</a></li>
+        <li><a href="#3-badusb攻击">3 BadUSB攻击</a></li>
+        <li><a href="#4-badusb攻击进阶">4 BadUSB攻击进阶</a></li>
+        <li><a href="#5-一些可行的防范措施">5 一些可行的防范措施</a></li>
+        <li><a href="#6-参考文献">6 参考文献</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><p>##<!-- raw HTML omitted --> 一种基于USB设备的安全攻击———BadUSB <!-- raw HTML omitted -->
+[toc]</p>
+<hr>
+<h3 id="1-背景与原理">1 背景与原理</h3>
+<p>USB作为一种即插即用的工具，在给人们提供便利的同时，也带来了很多安全威胁。BadUSB是一种基于带有恶意软件编程的USB设备的计算机安全攻击。在USB攻击领域，对于老式USB病毒autorun.inf，现有的任何一个杀毒软件都能防范它，已经不再具备什么安全威胁。与autorun.inf不同，BadUSB利用了USB协议上的漏洞，通过更改USB的内部固件，BadUSB插入后会模拟键盘和鼠标对电脑进行操作，从而执行有害命令或注入恶意payload，并且不会引起杀毒软件、防火墙的注意。此外，因为是在固件级别的应用，格式化U盘根本无法阻止其内部代码的执行。而且Windows、Linux、MAC等各类操作系统不必联网下载专用的驱动程序，向BadUSB烧录程序极为简单，上手较为容易。</p>
+<p>BadUSB工作的前提是计算机信任键盘作为有效的输入源，默认情况下，计算机不信任下载的可执行文件，所以会扫描文件以验证其来源和意图，如果可执行文件来自未知开发人员或显示为恶意文件，则计算机会阻止文件运行。但是，如果标准用户打开命令提示符再输入命令，用户计算机将盲目跟随命令而不判断其意图。因而通过模拟键盘，BadUSB可以轻松执行一系列模拟系统上实际用户交互的功能，它使用脚本语言来告诉USB设备一旦插入目标主机该做什么，达到恶意攻击目的。</p>
+<h3 id="2-准备阶段">2 准备阶段</h3>
+<h4 id="21-一块支持usb接口的可编程开发板">2.1 一块支持USB接口的可编程开发板</h4>
+<p>Arduino开发板；</p>
+<h4 id="22-编译环境">2.2 编译环境</h4>
+<p>Arduino IDE。Arduino IDE可以再Windows、Macintosh OS X、Linux三大主流操作系统上运行，基于processing IDE开发。对于初学者来说，极易掌握，同时有着足够的灵活性。</p>
+<h4 id="23-程序语言">2.3 程序语言</h4>
+<p>Arduino语言。Arduino语言基于wiring语言开发，是对avr-gcc库的二次封装，不需要太多的单片机基础、编程基础，简单学习后即可快速地进行开发。
+<!-- raw HTML omitted --></p>
+<h3 id="3-badusb攻击">3 BadUSB攻击</h3>
+<p>攻击流程：</p>
+<!-- raw HTML omitted -->
+<hr>
+<h4 id="32-命令行">3.2 命令行</h4>
+<p>该攻击将自动打开Windows命令行cmd.exe.</p>
+<h5 id="321-程序代码">3.2.1 程序代码</h5>
+<p>代码的流程是：开始键盘通讯，延迟1秒，按下Windows键，延迟0.5秒，松开Windows键，延迟0.5秒，按下大小写锁定键，松开大小写锁定键，输入字符串“cmd.exe”，延迟0.5秒，按下左CTRL键，按下左shift键，按下回车键，延迟0.5秒。具体代码如下。</p>
+<!-- raw HTML omitted -->
+<hr>
+<h4 id="33-以管理员身份运行命令行">3.3 以管理员身份运行命令行</h4>
+<p>该攻击的目的是自动以管理员身份运行Windows命令行cmd.exe.</p>
+<h5 id="331-程序代码">3.3.1 程序代码</h5>
+<p>代码的流程是：松开左CTRL键，松开左shift键，松开回车键，延迟0.5秒，按下左alt键，按下y键，延迟0.5秒，松开左alt键，松开y键，延迟0.5秒，结束键盘通讯。具体代码如下。</p>
+<!-- raw HTML omitted -->
+<hr>
+<h4 id="34-运行命令行并隐藏">3.4 运行命令行并隐藏</h4>
+<p>该攻击的目的是运行Windows命令行后将其从屏幕上隐藏起来。</p>
+<h5 id="341-程序代码">3.4.1 程序代码</h5>
+<p>代码的流程是：开始键盘通讯，延迟3秒，按下Windows键，延迟0.2秒，输入字符串“r”，延迟0.2秒，松开Windows键，按下大小写锁定键，松开大小写锁定键，延迟1秒，输入字符串<code>CMD  /q /d /f:off /v:on /k MODE con: cols=30 lines=6</code>并敲回车键，延迟1秒，按下左alt键，延迟0.2秒，按下空格键，延迟0.2秒，松开左alt键，松开空格键，延迟0.2秒，输入字符串“m”，按下左键，延迟3秒，松开左键，按下回车键，结束键盘通讯。具体代码如下。</p>
+<!-- raw HTML omitted -->
+<hr>
+<h4 id="35-打开linux命令行">3.5 打开Linux命令行</h4>
+<p>该攻击的目的是自动打开Linux下的命令行terminal并执行指令。</p>
+<h5 id="351-程序代码">3.5.1 程序代码</h5>
+<p>代码的流程是：开始键盘通讯，延迟3秒，按下Windows键，延迟0.2秒，松开Windows键，延迟0.5秒，按下大小写锁定键，松开大小写锁定键，延迟0.2秒，输入字符串“terminal”，延迟3秒，按下回车键，延迟3秒，输入字符串“PWD”并敲回车键，延迟1秒，输入字符串“ID”并敲回车键，延迟1秒，输入字符串“CAT /ETC/PASSWD”并敲回车键，延迟1秒，结束键盘通讯。具体代码如下。</p>
+<!-- raw HTML omitted -->
+<hr>
+<h4 id="36-关机">3.6 关机</h4>
+<p>该攻击的目的是对电脑实行强制关机。</p>
+<h5 id="361-程序代码">3.6.1 程序代码</h5>
+<p>代码的流程是：开始键盘通讯，延迟3秒，按下Windows键，延迟0.5秒，按下r键，延迟0.5秒，松开Windows键，松开r键，延迟0.5秒，输入字符串“shutdown -s -f -t-0”并敲回车键，结束键盘通讯。具体代码如下。</p>
+<!-- raw HTML omitted -->
+<hr>
+<h4 id="37-获得root权限">3.7 获得root权限</h4>
+<p>sudo是Linux系统管理指令，是允许系统管理员让普通用户执行一些或者全部的root命令的一个工具。在sudo于1980年前后被写出之前，一般用户管理系统的方式是利用su切换为超级用户，但是使用su的缺点之一是必须要先告知超级用户的密码。sudo使普通用户不需要知道超级用户的密码即可获得权限。具体原理是：首先，超级用户将普通用户的名字、可以执行的特定命令、按照哪种用户或用户组的身份执行等信息等级在特殊的文件中（通常是/etc/sudoers），即完成对该用户的授权（此时称该用户为“sudoer”）；在普通用户需要取得特殊权限时，其可在命令前加上“sudo”，此时sudo将会询问该用户自己的密码以确认终端机前的是用户本人，密码确认正确后系统会将该命令的进程以超级用户的权限运行。之后的一段时间内（默认为5分钟，可在/etc/sudoers中自定义），使用sudo不需要再次输入用户密码。</p>
+<p>假设Linux系统中有一个普通用户test，该用户不具备使用sudo指令的权限，也就无法获得root权限来执行root指令。该攻击的目的是通过修改sudo的配置文件sudoers来使用户test成功使用sudo指令执行root特权指令。</p>
+<!-- raw HTML omitted -->
+<p>可以看到当test用户想要通过sudo打开影子文件shadow时，终端会显示该用户没有在sudoers文件中配置。sudoers文件内容如下图，test用户条目添加的未知即为光标所在行。</p>
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<hr>
+<h3 id="4-badusb攻击进阶">4 BadUSB攻击进阶</h3>
+<p>此攻击的目的是让电脑运行相应指令，在我们的连接上下载木马程序，并对程序进行免杀，执行木马程序来完成越权提权。</p>
+<h4 id="41-需要开发板编译运行的程序代码">4.1 需要开发板编译运行的程序代码</h4>
+<!-- raw HTML omitted -->
+<p><strong>文件和校验法</strong></p>
+<blockquote>
+<p>将正常文件A的hash值保存，然后如果有一个新的A文件发送过来计算其hash值，如果与正常文件的不同，那么认定为病毒文件。</p>
+</blockquote>
+<p><strong>沙盒检测</strong></p>
+<blockquote>
+<p>这是一种基于行为的检测方法，通过观察文件是否有一些敏感的行为来确定文件是否为病毒。这种方法的优点是可具备发现未知病毒的潜力；缺点是误报率相对较高，而且需要用户参与。</p>
+</blockquote>
+<p><strong>云查杀</strong></p>
+<blockquote>
+<p>这种方法类似特征码查杀，只是当特征码库没有相应的匹配值时，会把文件上传到云端继续分析，有时候一开始扫描出来不是病毒，但过一会儿扫描就是病毒了，这种行为就是云查杀。</p>
+</blockquote>
+<p>接下来了解一些免杀方法。</p>
+<p><strong>修改特征码</strong></p>
+<blockquote>
+<p>因为大多数杀毒软件都是基于特征码进行查杀的，特征码的具体定义是能够识别一个程序的不大于64字节的字符。修改特征码的原则是不改变程序运行效果。但是由于每个厂商的特征库不同，这种方法需要针对不同的厂商进行特征码的修改，消耗的人力物力都非常大，不够其效果非常不错。</p>
+</blockquote>
+<p><strong>花指令</strong></p>
+<blockquote>
+<p>通过增加一段没有意义的指令（花指令）来达到免杀效果，原理类似修改特征码。例如杀毒软件本来是在0x00001000到0x00005000处找一个特征码，但因为我们填充了花指令，恶意代码文件的特征码跑到了0x00008000这个位置，就会导致特征码查杀失败，从而达到免杀的目的。</p>
+</blockquote>
+<p><strong>加壳</strong></p>
+<blockquote>
+<p>加壳的原理是给原程序加上一段保护程序，保护程序具有保护和加密的功能，运行加壳后的文件是先运行壳再运行真实程序从而起到保护原程序的作用。</p>
+</blockquote>
+<p><strong>最后是我们的免杀思路。</strong></p>
+<p>其实因为现在杀毒软件的技术的完备性，想手搓一个免杀木马还是十分困难的。但是我们发现通过管道的方式执行恶意代码反而不会被火绒检测到。管道命令指的是将上一条命令的输出，作为下一条命令的输入，两条命令通过“|”连接。最后，下面便是我们修改得到的代码：</p>
+<!-- raw HTML omitted -->
+<h4 id="44-攻击结果">4.4 攻击结果</h4>
+<p>插入USB之后，可以看到电脑自动弹出了运行框并在里面输入了上面那行代码，之后反弹权限到了实施攻击的主机上。</p>
+<p>可以查看被攻击主机的文件、远程桌面等，如下图所示。甚至还可以在主机上设立后门，从而变成自己的僵尸网络。</p>
+<!-- raw HTML omitted -->
+<h3 id="5-一些可行的防范措施">5 一些可行的防范措施</h3>
+<h4 id="51-使用专门的程序来监测打字速度">5.1 使用专门的程序来监测打字速度</h4>
+<blockquote>
+<p>由于BadUSB设备的打字速度几乎不可能是人为的，专门的程序会在后台运行并密切关注打字速度，当检测到BadUSB攻击时，程序会有效地阻止键盘输入。</p>
+</blockquote>
+<h4 id="52-设置以管理员身份运行cmd的密码">5.2 设置以管理员身份运行CMD的密码</h4>
+<blockquote>
+<p>设置使用提升的命令提示符的密码会停止任何编程为寻求管理员权限，从而阻止BadUSB攻击。</p>
+</blockquote>
+<h4 id="53-安装usb端口阻止程序">5.3 安装USB端口阻止程序</h4>
+<blockquote>
+<p>USB端口阻止程序是阻止用户在用户不知情的情况下连接可能包含恶意负载的未经授权的USB设备的有效方法，对于BadUSB攻击，攻击者不太可能以安装了该阻止程序的系统为目标。</p>
+</blockquote>
+<h3 id="6-参考文献">6 参考文献</h3>
+<p>[1] 初识BadUSB：https://blog.csdn.net/Peter_FHC/article/details/124994962
+[2] E. Karystinos, A. Andreatos and C. Douligeris, &ldquo;Spyduino: Arduino as a HID Exploiting the BadUSB Vulnerability,&rdquo; 2019 15th International Conference on Distributed Computing in Sensor Systems (DCOSS), 2019, pp. 279-283, doi: 10.1109/DCOSS.2019.00066.
+[3] Laiali Almazaydeh,Jun Zhang,Peiqiao Wu,Ruoqi Wei,Yisheng Cheng,Khaled Elleithy．Bad USB MITM: A Network Attack Based on Physical Access and Its Practical Security Solutions[J]．Computer and information science,2018,11(1):1-7</p>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>更新于 2023-02-05</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="分享到 Twitter" data-sharer="twitter" data-url="../../../posts/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/" data-title="安全书籍" data-hashtags="安全书籍"><i class="fab fa-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Facebook" data-sharer="facebook" data-url="../../../posts/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/" data-hashtag="安全书籍"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Hacker News" data-sharer="hackernews" data-url="../../../posts/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/" data-title="安全书籍"><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Line" data-sharer="line" data-url="../../../posts/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/" data-title="安全书籍"><i data-svg-src="https://cdn.jsdelivr.net/npm/simple-icons@7.3.0/icons/line.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 微博" data-sharer="weibo" data-url="../../../posts/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/" data-title="安全书籍"><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../../tags/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/">安全书籍</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">返回</a></span>&nbsp;|&nbsp;<span><a href="../../../">主页</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"><a href="../../../posts/3-%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/" class="prev" rel="prev" title="模糊测试 fuzzing "><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>模糊测试 fuzzing </a>
+            <a href="../../../posts/2-linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8/linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8-part-3-%E5%89%AF%E6%9C%AC/" class="next" rel="next" title="Linux内核利用 part 3">Linux内核利用 part 3<i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="回到顶部">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="查看评论">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sharer.js@0.5.1/sharer.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"复制到剪贴板","maxShownLines":50},"comment":{}};</script><script type="text/javascript" src="../../../js/theme.min.js"></script></body>
+</html>

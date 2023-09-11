@@ -1,0 +1,16 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>模糊测试 fuzzing - 分类 - 安全维基</title>
+        <link>/categories/%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/</link>
+        <description>模糊测试 fuzzing - 分类 - 安全维基</description>
+        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><managingEditor>admin@gmail-1.com (admin)</managingEditor>
+            <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate><atom:link href="/categories/%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/" rel="self" type="application/rss+xml" /><item>
+    <title>模糊测试 fuzzing </title>
+    <link>/posts/3-%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/3-%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-fuzzing/</guid>
+    <description><![CDATA[认识malloc_chunck 此结构用于表示特定的内存块。在程序执行中，我们称malloc申请的内存为chunk，用malloc_chunk]]></description>
+</item>
+</channel>
+</rss>

@@ -1,0 +1,16 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>安全书籍 - 标签 - 安全维基</title>
+        <link>/tags/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/</link>
+        <description>安全书籍 - 标签 - 安全维基</description>
+        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><managingEditor>admin@gmail-1.com (admin)</managingEditor>
+            <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate><atom:link href="/tags/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/" rel="self" type="application/rss+xml" /><item>
+    <title>安全书籍</title>
+    <link>/posts/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/7-%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/%E5%AE%89%E5%85%A8%E4%B9%A6%E7%B1%8D/</guid>
+    <description><![CDATA[##一种基于USB设备的安全攻击———BadUSB [toc] 1 背景与原理 USB作为一种即插即用的工具，在给人们提供便利的同时，也带来了很多安全威胁。]]></description>
+</item>
+</channel>
+</rss>

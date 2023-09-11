@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title> - 安全维基</title><meta name="Description" content="分享安全技术"><meta property="og:title" content="" />
+<meta property="og:description" content="2 堆的操作 ptmalloc2 通过实现了 malloc()、free() 以及一些其它的函数，来提供动态内存管理的支持。分配器处在用户程序和内核之间，它响应用户的" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/1-heap%E5%9F%BA%E7%A1%80/02-heap%E6%93%8D%E4%BD%9C_v.0.4/" /><meta property="article:section" content="posts" />
+
+<meta property="og:site_name" content="湖南大学安全Wiki" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content=""/>
+<meta name="twitter:description" content="2 堆的操作 ptmalloc2 通过实现了 malloc()、free() 以及一些其它的函数，来提供动态内存管理的支持。分配器处在用户程序和内核之间，它响应用户的"/>
+<meta name="application-name" content="湖南大学安全Wiki">
+<meta name="apple-mobile-web-app-title" content="湖南大学安全Wiki"><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="../../../favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/02-heap%E6%93%8D%E4%BD%9C_v.0.4/" /><link rel="next" href="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css"></noscript><link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "\/posts\/1-heap%E5%9F%BA%E7%A1%80\/02-heap%E6%93%8D%E4%BD%9C_v.0.4\/"
+        },"genre": "posts","wordcount":  10748 ,
+        "url": "\/posts\/1-heap%E5%9F%BA%E7%A1%80\/02-heap%E6%93%8D%E4%BD%9C_v.0.4\/","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "admin"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('auto' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'auto' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="../../../categories/"> 所有分类 </a><a class="menu-item" href="../../../posts/"> 文章 </a><a class="menu-item" href="../../../tags/"> 标签 </a><a class="menu-item" href="../../../about/"> 关于 </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="../../../categories/" title="">所有分类</a><a class="menu-item" href="../../../posts/" title="">文章</a><a class="menu-item" href="../../../tags/" title="">标签</a><a class="menu-item" href="../../../about/" title="">关于</a><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">目录</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX"></h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="../../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="0001-01-01">0001-01-01</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 10748 字&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;预计阅读 22 分钟&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>目录</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#2-堆的操作">2 堆的操作</a>
+      <ul>
+        <li><a href="#21-内存分配">2.1 内存分配</a></li>
+        <li><a href="#22-内存释放">2.2 内存释放</a></li>
+        <li><a href="#23-其他内部函数">2.3 其他内部函数</a></li>
+        <li><a href="#24-源代码">2.4 源代码</a></li>
+        <li><a href="#25-参考文章">2.5 参考文章</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><h2 id="2-堆的操作">2 堆的操作</h2>
+<p>ptmalloc2 通过实现了 <code>malloc()</code>、<code>free()</code> 以及一些其它的函数，来提供动态内存管理的支持。分配器处在用户程序和内核之间，它响应用户的分配请求，向操作系统申请内存，然后将其返回给用户程序，为了保持高效的分配，分配器一般都会预先分配一块大于用户请求的内存，并通过某种算法管理这块内存。来满足用户的内存分配要求，用户释放掉的内存也并不是立即就返回给操作系统；相反，分配器会管理这些被释放掉的空闲空间，以应对用户以后的内存分配要求。也就是说，分配器不但要管理已分配的内存块，还需要管理空闲的内存块，当响应用户分配要求时，分配器会首先在空闲空间中寻找一块合适的内存给用户，在空闲空间中找不到的情况下才分配一块新的内存，为实现一个高效的分配器，需要考虑很多的因素。</p>
+<p>本文将结合 glibc-2.24 版本的源代码，介绍了 ptmalloc2 响应用户内存分配和内存释放要求的具体步骤，以及一些堆内部经常使用的函数。</p>
+<h3 id="21-内存分配">2.1 内存分配</h3>
+<p>ptmalloc2 主要使用的内存分配函数为 <code>malloc()</code>，<code>malloc()</code> 函数的定义位于 glibc 的 malloc.c 文件中。实际上在 glibc 内部 <code>malloc()</code> 只是 <code>__libc_malloc()</code> 函数的别名，而 <code>__libc_malloc()</code> 函数的主要工作由 <code>_int_malloc()</code> 完成，即 <code>__libc_malloc()</code> 是对 <code>_int_malloc()</code> 的封装。下面我们将通过介绍这两个函数的逻辑来分析 malloc 的实现。</p>
+<h4 id="211-__libc_malloc">2.1.1 __libc_malloc()</h4>
+<p><code>__libc_malloc()</code> 的源代码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="o">*</span><span class="nf">__libc_malloc</span> <span class="p">(</span><span class="n">size_t</span> <span class="n">bytes</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">mstate</span> <span class="n">ar_ptr</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">victim</span><span class="p">;</span>
+
+  <span class="kt">void</span> <span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="n">hook</span><span class="p">)</span> <span class="p">(</span><span class="n">size_t</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)</span>
+    <span class="o">=</span> <span class="n">atomic_forced_read</span> <span class="p">(</span><span class="n">__malloc_hook</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">hook</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="n">hook</span><span class="p">)(</span><span class="n">bytes</span><span class="p">,</span> <span class="n">RETURN_ADDRESS</span> <span class="p">(</span><span class="mi">0</span><span class="p">));</span>
+
+  <span class="n">arena_get</span> <span class="p">(</span><span class="n">ar_ptr</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+
+  <span class="n">victim</span> <span class="o">=</span> <span class="n">_int_malloc</span> <span class="p">(</span><span class="n">ar_ptr</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+  <span class="cm">/* Retry with another arena only if we were able to find a usable arena
+</span><span class="cm">     before.  */</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">victim</span> <span class="o">&amp;&amp;</span> <span class="n">ar_ptr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+    <span class="p">{</span>
+      <span class="n">LIBC_PROBE</span> <span class="p">(</span><span class="n">memory_malloc_retry</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+      <span class="n">ar_ptr</span> <span class="o">=</span> <span class="n">arena_get_retry</span> <span class="p">(</span><span class="n">ar_ptr</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+      <span class="n">victim</span> <span class="o">=</span> <span class="n">_int_malloc</span> <span class="p">(</span><span class="n">ar_ptr</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">ar_ptr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+    <span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="n">mutex_unlock</span> <span class="p">(</span><span class="o">&amp;</span><span class="n">ar_ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+
+  <span class="n">assert</span> <span class="p">(</span><span class="o">!</span><span class="n">victim</span> <span class="o">||</span> <span class="n">chunk_is_mmapped</span> <span class="p">(</span><span class="n">mem2chunk</span> <span class="p">(</span><span class="n">victim</span><span class="p">))</span> <span class="o">||</span>
+          <span class="n">ar_ptr</span> <span class="o">==</span> <span class="n">arena_for_chunk</span> <span class="p">(</span><span class="n">mem2chunk</span> <span class="p">(</span><span class="n">victim</span><span class="p">)));</span>
+  <span class="k">return</span> <span class="n">victim</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="n">libc_hidden_def</span> <span class="p">(</span><span class="n">__libc_malloc</span><span class="p">)</span>
+</code></pre></div><p>该函数的主要逻辑如下：</p>
+<ol>
+<li>
+<p><code>__libc_malloc</code> 函数的参数<code>bytes</code>是用户申请分配的空间的大小，并且是用户提出申请的原始大小，比如说 malloc(12)，那么这里 bytes 就是 12，而非经过 <code>request2size</code> 宏计算得到的 chunk 对齐的大小；</p>
+</li>
+<li>
+<p>一开始，<code>__libc_malloc</code> 会检查是否有内存分配钩子函数 <code>__malloc_hook</code>，有的话则调用它；</p>
+</li>
+<li>
+<p>之后调用 <code>arena_get()</code> 来获取一个分配区，并上锁；</p>
+</li>
+<li>
+<p>然后调用 <code>_init_malloc()</code> 函数申请对应大小的内存；</p>
+</li>
+<li>
+<p>断言执行后可能会出现以下三种意外情况，这些情况将导致函数报错并退出；</p>
+<ul>
+<li>没有申请到内存</li>
+<li>mmap 得到的内存</li>
+<li>申请到的内存不在其所分配的 arena 中</li>
+</ul>
+</li>
+<li>
+<p>调用 <code>mutex_unlock</code> 对分配区解锁并返回申请到的空间 <code>victim</code>。</p>
+</li>
+</ol>
+<p><strong>__malloc_hook 全局钩子</strong>
+ptmalloc2 定义了一个全局钩子 <code>__malloc_hook</code>，这个钩子会由 <code>malloc_hook_ini</code> 函数来赋值。如果我们需要自定义堆分配函数，就可以把这个钩子函数重新设置为我们自定义的函数，即 ptmalloc 给我们提供了一个机会去使用自己定义的堆分配函数来完成对堆空间的申请；如果我们没有自定义堆分配函数，而是选择默认的ptmalloc 来帮我们完成申请，那么在用户第一次调用 malloc 函数时会首先转入 <code>malloc_hook_ini</code> 函数里面，这个函数的定义在 hook.c 文件中，源代码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">static</span> <span class="kt">void</span> <span class="o">*</span>
+<span class="nf">malloc_hook_ini</span> <span class="p">(</span><span class="n">size_t</span> <span class="n">sz</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">caller</span><span class="p">)</span>
+<span class="p">{</span>
+   <span class="n">__malloc_hook</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+   <span class="n">ptmalloc_init</span> <span class="p">();</span>
+   <span class="k">return</span> <span class="n">__libc_malloc</span> <span class="p">(</span><span class="n">sz</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>可以看到在 <code>malloc_hook_ini</code> 里会把 <code>__malloc_hook</code> 设置为空，然后调用 <code>ptmalloc_init</code> 函数，这个函数将完成对 ptmalloc 的初始化，最后再一次调用 <code>__libc_malloc</code> 函数。
+综上可知，在我们第一次调用 malloc 申请堆空间的时候，首先会进入 <code>malloc_hook_ini</code> 里面进行对 ptmalloc 的初始化工作，然后再次进入 <code>__libc_malloc</code> 时会发现钩子已经被置空，从而继续执行下面的代码。</p>
+<blockquote>
+<p>第一次调用 malloc 函数时函数的执行路径：
+<code>malloc -&gt; __libc_malloc -&gt; __malloc_hook -&gt; ptmalloc_init -&gt; __libc_malloc -&gt; _int_malloc</code>
+之后再次调用时的执行路径：
+<code>malloc -&gt; __libc_malloc -&gt; _int_malloc</code></p>
+</blockquote>
+<h4 id="212-_init_malloc">2.1.2 _init_malloc()</h4>
+<p>通过前文我们已知 <code>_int_malloc()</code> 函数才是内存分配的核心，结合 <a href="#241-_int_malloc%e6%ba%90%e4%bb%a3%e7%a0%81" rel="">2.4.1 _int_malloc()源代码</a> 进行分析，该函数的整体逻辑如下：</p>
+<ol>
+<li>
+<p>检查是否有可用的 arena，如果没有就调用 <code>sysmalloc</code> 申请，有的话就继续下一步。</p>
+</li>
+<li>
+<p>计算 chunk 的大小，前面说到，<code>__libc_malloc</code> 的参数 <code>bytes</code> 是用户提交的最原始的空间大小，但是 ptmalloc 分配时是以 chunk 为单位分配的，由原始的空间大小计算得到 chunk 对齐后的大小由 <code>checked_request2size</code> 宏完成，<code>nb</code> 即为计算得到的 chunk 大小。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c">  <span class="n">checked_request2size</span> <span class="p">(</span><span class="n">bytes</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+</code></pre></div></li>
+<li>
+<p>如果 <code>nb</code> 落在 fastbins 范围，首先根据大小计算 index 获取对应的 fastbin 链表，然后获取链表上第一个 chunk：</p>
+</li>
+</ol>
+<blockquote>
+<ul>
+<li>如果该 chunk 不为空，则更改链表头指向第二个 chunk，并通过 <code>chunk2mem</code> 宏返回 chunk 中用户数据区的地址即可。注意这里无需设置当前空闲 chunk 的使用标志位，因为 fastbins 中的空闲 chunk 为了避免被合并，它的使用标志位是 1，即表示在“使用中”。</li>
+<li>如果该 chunk 为空，说明当前 fastbin 中没有恰好匹配 <code>nb</code> 大小的空闲 chunk。注意在 fastbin 中分配 chunk 时是精确匹配而非最佳匹配。</li>
+</ul>
+</blockquote>
+<ol start="4">
+<li>如果 <code>nb</code> 落在 small bins 范围内，则前往 small bin 中查找。根据大小计算 index 获取对应的 small bin 链表，然后判断该链表是否为空：</li>
+</ol>
+<blockquote>
+<ul>
+<li>如果为空，则说明获取失败，没有合适的空闲 chunk，直接跳到后面的步骤。</li>
+<li>如果不为空，则判断获取到的链表的尾部的 chunk 是否为空：
+<ul>
+<li>如果为空，说明当前分配区还没有初始化，small bin 也没有被初始化，此时会转至 <code>malloc_consolidate</code> 函数进行初始化。（如果 small bin 已经初始化但没有找到合适的空闲 chunk，是不会调用该函数来清空 fastbins 的）</li>
+<li>如果不为空，则获取该 chunk 并返回。这里需要设置当前返回 chunk 的使用标志位以及非主分配区标志位。</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<ol start="5">
+<li>
+<p>如果 <code>nb</code> 不属于 small bins，说明申请的空间为 largebins，这时候不会立即检查 largebins，而是会调用 <code>malloc_consolidate</code> 函数将 fastbins 里面的空闲 chunk 合并整理到 unsorted bin 中。</p>
+</li>
+<li>
+<p>如果经过上述步骤都没有找到合适的空闲 chunk，此时将开始检查并整理 unsorted bin，这个过程是一边检查一边整理的，即如果有合适的就返回退出，如果没有就把 unsorted bin 中的每一个空闲 chunk 整理到 small bins 或 large bins 中。</p>
+</li>
+</ol>
+<blockquote>
+<ul>
+<li>
+<p>按照 FIFO 的方式逐个将 unsorted bin 中的 chunk 取出来判断，判断 chunk 本身信息是否合法：</p>
+<ul>
+<li>size 在合法范围内</li>
+<li>下一个 chunk 的 size 是否合法</li>
+<li>下一个 chunk 的<code>prev_size</code>是不是与当前 size 相等</li>
+<li><code>fd</code> 指针是不是正确</li>
+<li>下一个 chunk 的 <code>prev_inuse</code> 位是否正确</li>
+</ul>
+</li>
+<li>
+<p>如果 <code>nb</code> 落在 small bins 范围内，而 unsorted bin 中只有 last_remainder chunk，并且它的 size 足够大，就将这个唯一的空闲 chunk 分割后返回，剩余的空间作为新的 last_remainder chunk 并插入到 unsorted bin 链表的头部。</p>
+</li>
+<li>
+<p>如果可以精确匹配则返回。unsorted bin 本来就是作为 small bins 和 large bins 的缓冲区存在，它里面存放着许多 free 时插入的空闲 chunks 或整理 fastbins 之后插入的空闲空间，很有可能这些空间里就有一个刚好能够精确匹配用户需要申请的空间大小。如果找到这样的空闲 chunk，直接返回即可。</p>
+</li>
+<li>
+<p>如果当前空闲 chunk 不能精确匹配并且属于 small bins 大小范围，那么就将其插入到 small bins 中相应的 small bins 链表的头部。</p>
+</li>
+<li>
+<p>如果当前空闲 chunk 落在 large bins 大小范围，那么就将其插入到 large bins 链表中。</p>
+<ul>
+<li>这种插入更加复杂。因为 large bins 每一条链表上的 chunk 大小并不是相等的，而是处于一个范围内即可，而且每一个 large bin 并不是一个组双向循环链表，而是两组：<code>fd</code> 和 <code>bk</code> 构成的一组，<code>fd_nextsize</code> 和 <code>bk_nextsize</code> 构成的另一组。因此在插入时不仅需要合适的插入位置，还需要对链表做更多的工作。</li>
+<li>如果 large bin 为空，则直接插入到链表头即可。</li>
+<li>查找当前 large bin 的最后一个 chunk，因为在 large bin 链表中 chunk 按大小从大到小排列，因此最后一个 chunk 也是该链表中最小的一个 chunk。如果待插入的 chunk 小于该最小的空闲 chunk，则将其插入到链表尾部。</li>
+<li>插入到链表中间。首先通过一个 while 循环找到合适的插入位置，找到位置之后进行判断，判断链中是否存在大小相同的一组chunks。
+<ul>
+<li>如果存在一组大小相同的 chunks，则插入到该组 chunks 的第二位，这样就无需修改第二组双向循环链表。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>中断整理 unsorted bin 有两种情况。</p>
+<ul>
+<li>一种是已经遍历整理完 unsorted bin 中所有空闲 chunk，在 while 判断处即可自然终止。</li>
+<li>一种情况是，当整理 unsorted bin 中的空闲的 chunks 总数达到10000个时，就会 break 中断循环，避免因为处理 unsorted bin 而耗费太多时间。</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<ol start="7">
+<li>到该步骤，unsorted bin 已经变空，继续从 small bins 或者 large bins 分配。两种 bins 有一点不同的是，此时small bins 已经确定无法精确匹配了（对 unsorted bin 处理之前已经扫描了一轮 small bins），只能使用最佳匹配，而  large bins 还存在精确匹配的可能：</li>
+</ol>
+<blockquote>
+<ul>
+<li>首先判断 <code>nb</code> 落在 large bins 范围内，如果属于则检查 <code>nb</code> 对应的那一个 large bin 链表上是否有满足要求的空闲 chunk。注意仅仅在这个 large bin 上还存在着精确匹配的可能。
+<ul>
+<li>首先判断当前 large bin 链表是否非空，并且最大的一个空闲 chunk 是否比 <code>nb</code> 大，如果都满足，则通过一个 while 循环找到满足分配要求的那一组相同大小的空闲 chunks：
+<ul>
+<li>如果这一组 chunks 的数量超过两个且大小刚好精确匹配，则返回这一组中的第二个空闲 chunk（返回第一个需要重新调整第二组双向循环链表），否则就直接返回找到的第一个 chunk。此处使用了 <code>unlink</code> 将选择的chunk脱链。</li>
+<li>如果找到的 chunk 不满足精确匹配的要求，就会进行分割并产生一个剩余的空间，如果这个空间不足以成为一个新的 chunk，即比最小的 chunk 的大小还要小，那么就直接把整个 chunk 返回给用户，否则将分割之后的剩余空间作为一个新 chunk 插入到 unsorted bin 中。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<ol start="8">
+<li>如果 <code>nb</code> 属于 small bins 范围，或者不属于 large bins 但经过以上步骤仍然没有找到合适的 chunk，此时就只能从 small bin 或者 large bin 中进行最佳匹配了。</li>
+</ol>
+<blockquote>
+<ul>
+<li>
+<p>最佳匹配的意思：从 <code>nb</code> 对应的那一个 small bin 或者 large bin 链表开始往上搜索离它最近并且非空的一个 small bin 或者 large bin。从中取出最小的一个空闲 chunk 返回，这个空闲 chunk 必定是不会精确匹配并且会产生剩余空间的，但它已经是能找到的离 <code>nb</code> 最接近的一个空闲 chunk 了。</p>
+</li>
+<li>
+<p>ptmalloc 使用 binmap 来加快查找的速度。binmap 是 bins 的位图，标记每一个 bin 是否为空，通过前面的介绍我们知道，bins 数组长度为128，而标记每一个 bin 是否非空只需要用 1 bit 即可，因此对于所有 bins，ptmalloc 使用四个 <code>unsigned int</code>，一共32个字节128位即可标记所有 bins 的非空状态了。</p>
+</li>
+<li>
+<p>另外需要注意的是，如果分割之后剩余的 chunk 大小落在 small bins 范围内，那么除了把这个剩余 chunk 插入到 unsorted bin 中之外，它还同时成为当前分配区的 last_remainder。(这也是仅有的更改 last_remainder 的两处地方之一，一处是在整理 unsorted bin 切割 last_remainder 时剩余的空间将继承成为新的 last_remainder，另一处即是这里。)</p>
+</li>
+</ul>
+</blockquote>
+<ol start="9">
+<li>如果以上步骤仍然没有找到合适的空闲 chunk 可以满足分配要求，此时 ptmalloc 将从 top chunk 中分割空间来进行分配。</li>
+</ol>
+<blockquote>
+<ul>
+<li>首先获取到 top chunk 的大小，然后和 <code>nb</code> 做比较，如果 top chunk 在满足分配后还能够形成一个 chunk，即剩余空间大小大于最小的 chunk 的大小，则开始进行分割，并把剩余的 chunk 作为新的 top chunk。</li>
+</ul>
+</blockquote>
+<ol start="10">
+<li>如果至此还没有找到满足要求的 chunk，则说明当前 ptmalloc 缓存的空闲 chunks 都不能满足分配要求，只能调用 <code>sysmalloc</code> 直接向系统申请内存了。</li>
+</ol>
+<h4 id="213-总结">2.1.3 总结</h4>
+<p>响应用户内存分配请求的流程如下：
+<img
+        class="lazyload"
+        src="../../../svg/loading.min.svg"
+        data-src="https://gitlab.com/Lelouny/heap-image/-/raw/main/malloc2.png"
+        data-srcset="https://gitlab.com/Lelouny/heap-image/-/raw/main/malloc2.png, https://gitlab.com/Lelouny/heap-image/-/raw/main/malloc2.png 1.5x, https://gitlab.com/Lelouny/heap-image/-/raw/main/malloc2.png 2x"
+        data-sizes="auto"
+        alt="https://gitlab.com/Lelouny/heap-image/-/raw/main/malloc2.png"
+        title="https://gitlab.com/Lelouny/heap-image/-/raw/main/malloc2.png" /></p>
+<h3 id="22-内存释放">2.2 内存释放</h3>
+<p>用户通过 <code>malloc()</code> 或类似的如 <code>realloc()</code> 等函数申请的堆空间不会被系统自动回收，必须由用户手动通过 <code>free()</code> 函数回收。<code>free()</code> 函数的定义位于 glibc 的 malloc.c 文件中，实际上在 glibc 内部 <code>free()</code> 函数只是 <code>__libc_free()</code> 函数的别名，而 <code>__libc_free()</code> 函数的工作又主要由 <code>_int_free()</code> 完成。因此，分析 <code>free()</code> 函数，即是分析 <code>__libc_free()</code> 以及 <code>_int_free()</code> 这两个函数。
+在一开始，<code>free()</code> 函数接受一个指向分配区域的指针作为参数，释放该指针所指向的 chunk，具体的释放方法则看该 chunk 所处的位置和该 chunk 的大小。</p>
+<h4 id="221-__libc_free">2.2.1 __libc_free()</h4>
+<p><code>strong alias</code> 表示给函数一个强符号的别名，<code>free()</code> 为 <code>__libc_free()</code> 的别名：</p>
+<blockquote>
+<p><code>strong_alias (__libc_free, __free) strong_alias (__libc_free, free)</code></p>
+</blockquote>
+<p><code>__libc_free()</code> 的源码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="kt">void</span> <span class="nf">__libc_free</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">mem</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">mstate</span> <span class="n">ar_ptr</span><span class="p">;</span>
+  <span class="n">mchunkptr</span> <span class="n">p</span><span class="p">;</span>                          <span class="cm">/* chunk corresponding to mem */</span>
+  <span class="cm">/*检查是否有钩子函数 __free_hook */</span>
+  <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">hook</span><span class="p">)</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)</span>
+    <span class="o">=</span> <span class="n">atomic_forced_read</span> <span class="p">(</span><span class="n">__free_hook</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">hook</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="p">{</span>
+      <span class="p">(</span><span class="o">*</span><span class="n">hook</span><span class="p">)(</span><span class="n">mem</span><span class="p">,</span> <span class="n">RETURN_ADDRESS</span> <span class="p">(</span><span class="mi">0</span><span class="p">));</span>
+      <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="cm">/*释放一个空指针可能会产生错误，因此直接返回*/</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">mem</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>                              <span class="cm">/* free(0) has no effect */</span>
+    <span class="k">return</span><span class="p">;</span>
+  <span class="cm">/*将mem指针转换为chunk指针*/</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">mem2chunk</span> <span class="p">(</span><span class="n">mem</span><span class="p">);</span>
+  <span class="cm">/*内存是mmap分配的，在此释放掉*/</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">chunk_is_mmapped</span> <span class="p">(</span><span class="n">p</span><span class="p">))</span>                       <span class="cm">/* release mmapped memory. */</span>
+    <span class="p">{</span>
+      <span class="cm">/* See if the dynamic brk/mmap threshold needs adjusting.
+</span><span class="cm">	 Dumped fake mmapped chunks do not affect the threshold.  */</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">mp_</span><span class="p">.</span><span class="n">no_dyn_threshold</span>
+          <span class="o">&amp;&amp;</span> <span class="n">chunksize_nomask</span> <span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">mp_</span><span class="p">.</span><span class="n">mmap_threshold</span>
+          <span class="o">&amp;&amp;</span> <span class="n">chunksize_nomask</span> <span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">DEFAULT_MMAP_THRESHOLD_MAX</span>
+	  <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">DUMPED_MAIN_ARENA_CHUNK</span> <span class="p">(</span><span class="n">p</span><span class="p">))</span>
+        <span class="p">{</span>
+          <span class="n">mp_</span><span class="p">.</span><span class="n">mmap_threshold</span> <span class="o">=</span> <span class="n">chunksize</span> <span class="p">(</span><span class="n">p</span><span class="p">);</span>
+          <span class="n">mp_</span><span class="p">.</span><span class="n">trim_threshold</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">mp_</span><span class="p">.</span><span class="n">mmap_threshold</span><span class="p">;</span>
+          <span class="n">LIBC_PROBE</span> <span class="p">(</span><span class="n">memory_mallopt_free_dyn_thresholds</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span>
+                      <span class="n">mp_</span><span class="p">.</span><span class="n">mmap_threshold</span><span class="p">,</span> <span class="n">mp_</span><span class="p">.</span><span class="n">trim_threshold</span><span class="p">);</span>
+        <span class="p">}</span>
+      <span class="n">munmap_chunk</span> <span class="p">(</span><span class="n">p</span><span class="p">);</span>
+      <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+
+  <span class="cm">/*根据chunk获得arena的指针*/</span>
+  <span class="n">ar_ptr</span> <span class="o">=</span> <span class="n">arena_for_chunk</span> <span class="p">(</span><span class="n">p</span><span class="p">);</span>
+  <span class="cm">/*调用_int_free进行释放*/</span>
+  <span class="n">_int_free</span><span class="p">(</span><span class="n">ar_ptr</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p><code>__libc_free(void *mem)</code> 的参数 <code>void *mem</code> 实际上就是 <code>free(p)</code> 中的 <code>p</code> ，该函数主要做了以下几件事：</p>
+<ul>
+<li>首先检查释放的指针 <code>p</code> 是否是空指针，如果是，那么 <code>__libc_free()</code> 不会有任何动作，直接返回；</li>
+<li>检查是否有内存分配钩子函数，有的话调用，这一步操作与 <code>malloc</code> 类似；</li>
+<li>如果 <code>p</code> 是通过 <code>mmap()</code> 配得到的，则由 <code>munmap_chunk()</code> 负责释放，调用 <code>munmap_chunk()</code> 进行内存释放；</li>
+<li>根据 chunk 获得其所在分配区的指针；</li>
+<li>非 <code>mmap()</code> 分配的内存，由 <code>_int_free()</code> 负责释放，调用 <code>_int_free</code> 进行内存释放。</li>
+</ul>
+<h4 id="222-_init_free">2.2.2 _init_free()</h4>
+<p>在 <code>__libc_free()</code> 函数中，如果释放的堆空间不是通过 <code>mmap()</code> 分配的，那么剩下的工作就会交给 <code>_int_free()</code> 完成。结合 <a href="#242-_int_free%e6%ba%90%e4%bb%a3%e7%a0%81" rel="">2.4.2 _int_free()源代码</a> 进行分析，<code>_int_free (mstate av, mchunkptr p, int have_lock)</code> 中的 <code>p</code> 是需要释放的 <code>chunk</code>，该函数的整体逻辑如下：</p>
+<p><strong>1）通过 <code>chunksize()</code> 宏得到 <code>p</code> 的大小，存放在 <code>size</code> 中，然后进行 chunk 检查：</strong></p>
+<ul>
+<li>判断对齐；</li>
+<li>大小需比最小的 chunk 大，且需要是 <code>MSLLOC_ALIGNMENT</code> 的整数倍，还需小于 <code>-size</code> ；</li>
+<li>检查 <code>p</code> 是否正在使用中。</li>
+</ul>
+<p><strong>2）满足条件的<code>p</code>被插入到fastbin中</strong>
+判断 <code>p</code> 的尺寸，如果小于或等于 <code>get_max_fast ()</code> 并且不和 top chunk 相邻，则说明 <code>p</code> 应当被回收插入到 fastbin 中：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">if</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)(</span><span class="n">size</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)(</span><span class="n">get_max_fast</span> <span class="p">())</span>
+
+<span class="cp">#if TRIM_FASTBINS
+</span><span class="cp"></span>      <span class="cm">/*
+</span><span class="cm">    If TRIM_FASTBINS set, don&#39;t place chunks
+</span><span class="cm">    bordering top into fastbins
+</span><span class="cm">      */</span>
+      <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">chunk_at_offset</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="o">!=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span><span class="p">)</span>
+<span class="cp">#endif
+</span><span class="cp"></span>      <span class="p">)</span>
+</code></pre></div><p>fastbin 是一个单向链表，它的工作方式被定义为插入和分配都是在链表头，即 LIFO。所以主要的工作其实就是 <code>P-&gt;FD = *FB; *FB = P;</code>，具体的插入操作：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="cm">/* Atomically link P to its fastbin: P-&gt;FD = *FB; *FB = P;  */</span>
+    <span class="n">mchunkptr</span> <span class="n">old</span> <span class="o">=</span> <span class="o">*</span><span class="n">fb</span><span class="p">,</span> <span class="n">old2</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">old_idx</span> <span class="o">=</span> <span class="o">~</span><span class="mi">0u</span><span class="p">;</span>
+    <span class="k">do</span>
+      <span class="p">{</span>
+    <span class="cm">/* Check that the top of the bin is not the record we are going to add
+</span><span class="cm">      (i.e., double free).  */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">old</span> <span class="o">==</span> <span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="p">{</span>
+        <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;double free or corruption (fasttop)&#34;</span><span class="p">;</span>
+        <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="cm">/* Check that size of fastbin chunk at the top is the same as
+</span><span class="cm">      size of the chunk that we are adding.  We can dereference OLD
+</span><span class="cm">      only if we have the lock, otherwise it might have already been
+</span><span class="cm">      deallocated.  See use of OLD_IDX below for the actual check.  */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">have_lock</span> <span class="o">&amp;&amp;</span> <span class="n">old</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+      <span class="n">old_idx</span> <span class="o">=</span> <span class="n">fastbin_index</span><span class="p">(</span><span class="n">chunksize</span><span class="p">(</span><span class="n">old</span><span class="p">));</span>
+    <span class="n">p</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">old2</span> <span class="o">=</span> <span class="n">old</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="k">while</span> <span class="p">((</span><span class="n">old</span> <span class="o">=</span> <span class="n">catomic_compare_and_exchange_val_rel</span> <span class="p">(</span><span class="n">fb</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">old2</span><span class="p">))</span> <span class="o">!=</span> <span class="n">old2</span><span class="p">);</span>
+</code></pre></div><p><strong>3）如果 p 是通过 mmap() 分配得到，由<code>munmap_chunk()</code>负责释放。</strong></p>
+<p>和 <code>__libc_free()</code> 中一样，如果是通过 <code>mmap()</code> 分配的，那么剩下的释放工作都将交由 <code>munmap_chunk()</code> 负责。但是相较于 <code>__libc_free()</code> ，这里少了对 mmap 的分配阈值以及系统的收缩阈值的修改操作。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="o">!</span><span class="n">chunk_is_mmapped</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+<span class="p">{</span>
+    <span class="p">...</span>
+<span class="p">}</span>
+<span class="cm">/*
+</span><span class="cm">  If the chunk was allocated via mmap, release via munmap().
+</span><span class="cm">*/</span>
+<span class="k">else</span> <span class="p">{</span>
+  <span class="n">munmap_chunk</span> <span class="p">(</span><span class="n">p</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><blockquote>
+<p>注意，其实之前 <code>__libc_free()</code> 中判断过，只有当 <code>p</code> 不是通过 <code>mmap()</code> 分配的情况下才会进入 <code>_int_free()</code>，再次进行判断是因为 <code>_int_free()</code> 在 <code>sysmalloc()</code> 、<code>__libc_realloc()</code> 等函数中也被调用了，这时传递给 <code>_int_free()</code> 的 <code>p</code> 不一定能通过 <code>chunk_is_mmapped(p)</code> 的检查。</p>
+</blockquote>
+<p><strong>4）如果 p 不是通过 mmap() 分配得到，有两种和空闲块合并的方式。</strong>
+如果不是通过 <code>mmap()</code> 分配的，那么将进入 if 语句块，将 <code>p</code> 合并后插入到 unsorted bin 或者直接合并到 top chunk。因为频繁地进行释放操作，系统可能会产生大量的堆内存碎片。因而为了避免产生大量碎片，系统在释放堆空间的时候会尝试进行合并操作，即如果相邻的 chunk 空闲，则合并成一个大的空闲 chunk，包括向前合并以及向后合并。</p>
+<ul>
+<li>向后合并，是合并相邻的低地址 chunk，通过 <code>prev_inuse(p)</code> 检查后方 chunk 是否在使用中，如果没有则进行合并，
+<ul>
+<li>相应代码：
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C">  <span class="cm">/* consolidate backward */</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">prev_inuse</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">prevsize</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">prev_size</span><span class="p">;</span>
+    <span class="n">size</span> <span class="o">+=</span> <span class="n">prevsize</span><span class="p">;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">chunk_at_offset</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">-</span><span class="p">((</span><span class="kt">long</span><span class="p">)</span> <span class="n">prevsize</span><span class="p">));</span>
+    <span class="n">unlink</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">bck</span><span class="p">,</span> <span class="n">fwd</span><span class="p">);</span>
+  <span class="p">}</span>
+
+</code></pre></div></li>
+</ul>
+</li>
+<li>向前合并，是合并相邻的高地址的chunk，
+<ul>
+<li>如果向前相邻的是 top chunk，那么直接合并到 top chunk，不再理会 unsorted bin；</li>
+<li>如果向前相邻的不是 top chunk，那么尝试合并后，插入到 unsorted bin 中。</li>
+<li>相应代码：
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C">  <span class="k">if</span> <span class="p">(</span><span class="n">nextchunk</span> <span class="o">!=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span><span class="p">)</span> <span class="p">{</span>
+        <span class="cm">/* get and clear inuse bit */</span>
+        <span class="n">nextinuse</span> <span class="o">=</span> <span class="n">inuse_bit_at_offset</span><span class="p">(</span><span class="n">nextchunk</span><span class="p">,</span> <span class="n">nextsize</span><span class="p">);</span>
+
+        <span class="cm">/* consolidate forward */</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">nextinuse</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">unlink</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">nextchunk</span><span class="p">,</span> <span class="n">bck</span><span class="p">,</span> <span class="n">fwd</span><span class="p">);</span>
+      <span class="n">size</span> <span class="o">+=</span> <span class="n">nextsize</span><span class="p">;</span>
+        <span class="p">}</span> <span class="k">else</span>
+      <span class="n">clear_inuse_bit_at_offset</span><span class="p">(</span><span class="n">nextchunk</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+        <span class="cm">/*
+</span><span class="cm">      Place the chunk in unsorted chunk list. Chunks are
+</span><span class="cm">      not placed into regular bins until after they have
+</span><span class="cm">      been given one chance to be used in malloc.
+</span><span class="cm">        */</span>
+
+        <span class="n">bck</span> <span class="o">=</span> <span class="n">unsorted_chunks</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+        <span class="n">fwd</span> <span class="o">=</span> <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">__glibc_unlikely</span> <span class="p">(</span><span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">!=</span> <span class="n">bck</span><span class="p">))</span>
+      <span class="p">{</span>
+        <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;free(): corrupted unsorted chunks&#34;</span><span class="p">;</span>
+        <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+      <span class="p">}</span>
+        <span class="n">p</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">;</span>
+        <span class="n">p</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">bck</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">in_smallbin_range</span><span class="p">(</span><span class="n">size</span><span class="p">))</span>
+      <span class="p">{</span>
+        <span class="n">p</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+        <span class="n">p</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+      <span class="p">}</span>
+        <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+        <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+
+        <span class="n">set_head</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+        <span class="n">set_foot</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+
+        <span class="n">check_free_chunk</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">p</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="cm">/*
+</span><span class="cm">        If the chunk borders the current high end of memory,
+</span><span class="cm">        consolidate into top
+</span><span class="cm">      */</span>
+
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="n">nextsize</span><span class="p">;</span>
+        <span class="n">set_head</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+        <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+        <span class="n">check_chunk</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">p</span><span class="p">);</span>
+      <span class="p">}</span>
+
+
+</code></pre></div></li>
+</ul>
+</li>
+</ul>
+<p><strong>5）释放空间足够大，触发 fastbin 的整理</strong>
+接下来还将判断，<code>p</code> 的大小（包含合并后的空间）是否大于或等于 <code>FASTBIN_CONSOLIDATION_THRESHOLD</code>，如果大于或等于，则调用 <code>malloc_consolidate()</code> 函数，这个函数会将 fastbin 中的每一个 chunk 合并后插入整理到 unsorted bin 中。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">if</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)(</span><span class="n">size</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">FASTBIN_CONSOLIDATION_THRESHOLD</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">have_fastchunks</span><span class="p">(</span><span class="n">av</span><span class="p">))</span>
+    <span class="n">malloc_consolidate</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+    <span class="p">...</span>
+<span class="p">}</span>
+</code></pre></div><h4 id="223-总结">2.2.3 总结</h4>
+<p><code>free()</code> 的整体操作流程图如下：
+<img
+        class="lazyload"
+        src="../../../svg/loading.min.svg"
+        data-src="https://gitlab.com/Lelouny/heap-image/-/raw/main/free2.jpg"
+        data-srcset="https://gitlab.com/Lelouny/heap-image/-/raw/main/free2.jpg, https://gitlab.com/Lelouny/heap-image/-/raw/main/free2.jpg 1.5x, https://gitlab.com/Lelouny/heap-image/-/raw/main/free2.jpg 2x"
+        data-sizes="auto"
+        alt="https://gitlab.com/Lelouny/heap-image/-/raw/main/free2.jpg"
+        title="https://gitlab.com/Lelouny/heap-image/-/raw/main/free2.jpg" />
+<!-- raw HTML omitted --></p>
+<h3 id="23-其他内部函数">2.3 其他内部函数</h3>
+<p>这是内部使用的一些常用函数的列表。要注意的是，某些函数实际上是使用 <code>#define</code> 指令定义的，因此，对调用参数的更改实际上在调用操作之后会保留。</p>
+<h4 id="231-malloc_consolidate">2.3.1 malloc_consolidate()</h4>
+<p><code>malloc_consolidate()</code> 函数是定义在 malloc.c 中的一个函数，用于将 fastbin 中的空闲 chunk 合并整理到 unsorted bin 中以及进行初始化堆的工作，在 <code>malloc()</code> 以及 <code>free()</code> 中均有可能调用 <code>malloc_consolidate()</code> 函数。在该函数源代码的注释里说到，<code>malloc_consolidate()</code> 是 <code>free()</code> 的一个小的变体，专门用于处理 fastbin 中的空闲 chunk，同时还负责堆管理的初始化工作。</p>
+<p>从 <a href="#243-malloc_consolidate%e6%ba%90%e4%bb%a3%e7%a0%81" rel="">2.4.3 malloc_consolidate()源代码</a> 的角度分析，该函数的整体逻辑如下：</p>
+<ol>
+<li>若 <code>get_max_fast()</code> 返回 0，则进行堆的初始化工作，然后进入第 7 步；</li>
+<li>从 fastbin 中获取一个空闲 chunk；</li>
+<li>尝试向后合并；</li>
+<li>若向前相邻 top chunk，则直接合并到 top chunk，然后进入第 6 步；</li>
+<li>否则尝试向前合并后，插入到 unsorted bin 中；</li>
+<li>获取下一个空闲 chunk，回到第 2 步，直到所有 fastbin 清空后进入第 7 步；</li>
+<li>退出函数。</li>
+</ol>
+<h4 id="232-unlink">2.3.2 unlink()</h4>
+<p><code>unlink()</code> 是一个宏，用于将某一个空闲 chunk 从其所处的 bin 中脱链。在 <code>malloc_consolidate()</code> 函数中 <code>unlink()</code>会将 fastbin 中的空闲 chunk 整理到 unsorted bin，在 <code>malloc()</code> 函数中用于将 unsorted bin 中的空闲 chunk 整理到 smallbin 或者 largebin，以及在 <code>malloc()</code> 中获得堆空间时，均有可能调用 <code>unlink()</code> 宏。
+该函数源代码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="cm">/* Take a chunk off a bin list */</span>
+<span class="cp">#define unlink(AV, P, BK, FD) {                                            
+</span><span class="cp"></span>    <span class="n">FD</span> <span class="o">=</span> <span class="n">P</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>                                   
+    <span class="n">BK</span> <span class="o">=</span> <span class="n">P</span><span class="o">-&gt;</span><span class="n">bk</span><span class="p">;</span>                                   
+    <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">FD</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">!=</span> <span class="n">P</span> <span class="o">||</span> <span class="n">BK</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">!=</span> <span class="n">P</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>             
+      <span class="n">malloc_printerr</span> <span class="p">(</span><span class="n">check_action</span><span class="p">,</span> <span class="s">&#34;corrupted double-linked list&#34;</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">AV</span><span class="p">);</span>  
+    <span class="k">else</span> <span class="p">{</span>                                    
+        <span class="n">FD</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">BK</span><span class="p">;</span>                                  
+        <span class="n">BK</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">FD</span><span class="p">;</span>                                  
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">P</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">)</span>                      
+            <span class="o">&amp;&amp;</span> <span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">P</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="p">{</span>            
+        <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">P</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">!=</span> <span class="n">P</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>        
+        <span class="o">||</span> <span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">P</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">!=</span> <span class="n">P</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>    
+          <span class="n">malloc_printerr</span> <span class="p">(</span><span class="n">check_action</span><span class="p">,</span>                      
+                   <span class="s">&#34;corrupted double-linked list (not small)&#34;</span><span class="p">,</span>    
+                   <span class="n">P</span><span class="p">,</span> <span class="n">AV</span><span class="p">);</span>                        
+            <span class="k">if</span> <span class="p">(</span><span class="n">FD</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>                    
+                <span class="k">if</span> <span class="p">(</span><span class="n">P</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">==</span> <span class="n">P</span><span class="p">)</span>                      
+                  <span class="n">FD</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="n">FD</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="n">FD</span><span class="p">;</span>             
+                <span class="k">else</span> <span class="p">{</span>                                
+                    <span class="n">FD</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="n">P</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span><span class="p">;</span>                 
+                    <span class="n">FD</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="n">P</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="p">;</span>                 
+                    <span class="n">P</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="n">FD</span><span class="p">;</span>                 
+                    <span class="n">P</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="n">FD</span><span class="p">;</span>                 
+                  <span class="p">}</span>                               
+              <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>                                
+                <span class="n">P</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="n">P</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="p">;</span>             
+                <span class="n">P</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="n">P</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span><span class="p">;</span>             
+              <span class="p">}</span>                                   
+          <span class="p">}</span>                                   
+      <span class="p">}</span>                                       
+<span class="p">}</span>
+</code></pre></div><p>从源代码的角度分析，该函数的整体逻辑如下：</p>
+<ol>
+<li>获取 <code>FD</code> 以及 <code>BK</code>；</li>
+<li>检查 <code>FD-&gt;bk != P || BK-&gt;fd != P</code>；</li>
+<li>如果 <code>P</code> 不是 smallbin 且 <code>P-&gt;fd_nextsize != null</code> 成立，进入第 4 步，否则进入第 5 步；</li>
+<li>根据具体情况适当设置 <code>fd_nextsize</code> 和 <code>bk_nextsize</code>；</li>
+<li>结束。</li>
+</ol>
+<h4 id="233-malloc_init_state">2.3.3 malloc_init_state()</h4>
+<p><code>malloc_init_state()</code>负责初始化<code>malloc_state</code>结构，源码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="kt">void</span> <span class="nf">malloc_init_state</span> <span class="p">(</span><span class="n">mstate</span> <span class="n">av</span><span class="p">){</span>
+  <span class="kt">int</span>     <span class="n">i</span><span class="p">;</span>
+  <span class="n">mbinptr</span> <span class="n">bin</span><span class="p">;</span>
+
+  <span class="cm">/* Establish circular links for normal bins */</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">NBINS</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">bin</span> <span class="o">=</span> <span class="n">bin_at</span><span class="p">(</span><span class="n">av</span><span class="p">,</span><span class="n">i</span><span class="p">);</span>
+    <span class="n">bin</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">bin</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">bin</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="cp">#if MORECORE_CONTIGUOUS
+</span><span class="cp"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">av</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">main_arena</span><span class="p">)</span>
+  <span class="cp">#endif
+</span><span class="cp"></span>    <span class="n">set_noncontiguous</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+
+    <span class="n">set_max_fast</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">DEFAULT_MXFAST</span><span class="p">);</span>
+
+    <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span> <span class="o">=</span> <span class="n">initial_top</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cp">#define bin_at(m,i) ((mbinptr)((char*)&amp;((m)-&gt;bins[(i)&lt;&lt;1]) - (SIZE_SZ&lt;&lt;1)))
+</span></code></pre></div><p>从源代码的角度分析，该函数的整体逻辑如下：</p>
+<ol>
+<li>对于不是 fastbin 的 bins 来说，需要为每个 bin 创建一个空循环链表；</li>
+<li>为 <code>av</code> 设置 <code>FASTCHUNKS_BIT</code> 的 flag 参数；</li>
+<li>把 <code>av-&gt;top</code> 初始化为第一个未经过排序的 chunk。</li>
+</ol>
+<h4 id="234-arena_get">2.3.4 arena_get()</h4>
+<p><code>arena_get</code> 不仅负责arena的获取，还负责arena的加锁操作，因为ptmalloc是支持多线程的，但是一个arena在同一时间只能被一个线程操作，所以需要加锁。如果当前没有arena链上没有可用的arena，那么它还会负责创建一个新的arena并返回，bytes参数就是在创建新的arena时用于作为新的arena的空间大小的参考。</p>
+<h4 id="235-alloc_perturb">2.3.5 alloc_perturb()</h4>
+<p><code>void alloc_perturb (char *p, size_t n)</code>：如果 <code>perturb_byte</code>（使用 <code>M_PERTURB</code> 的 <code>malloc</code> 的可调参数）不为零（默认情况下为 0），则修改 <code>p</code> 指向的 n 个字节的内容，使其与 <code>perturb_byte ^ 0xff</code> 相等。</p>
+<h4 id="236-free_perturb">2.3.6 free_perturb()</h4>
+<p><code>void free_perturb (char *p, size_t n)</code>：如果 <code>perturb_byte</code>（使用 <code>M_PERTURB</code> 的 <code>malloc</code> 的可调参数）不为零（默认情况下为 0），则修改 <code>p</code> 指向的 n 个字节的内容，使其与 <code>perturb_byte</code> 相等。</p>
+<h4 id="236-sysmalloc">2.3.6 Sysmalloc</h4>
+<p>Sysmalloc 需要系统用 malloc 函数分配更多的内存, 在使用的时候假设 <code>av-&gt;top</code> 的空间并不够请求 <code>nb</code> 字节，因此需要延长或者替换 <code>av-&gt;top</code> 。</p>
+<h3 id="24-源代码">2.4 源代码</h3>
+<h4 id="241-_int_malloc源代码">2.4.1 _int_malloc()源代码</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="cm">/*
+</span><span class="cm">   ------------------------------ malloc ------------------------------
+</span><span class="cm"> */</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="o">*</span>
+<span class="nf">_int_malloc</span> <span class="p">(</span><span class="n">mstate</span> <span class="n">av</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">bytes</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">INTERNAL_SIZE_T</span> <span class="n">nb</span><span class="p">;</span>               <span class="cm">/* normalized request size */</span>
+  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">idx</span><span class="p">;</span>                 <span class="cm">/* associated bin index */</span>
+  <span class="n">mbinptr</span> <span class="n">bin</span><span class="p">;</span>                      <span class="cm">/* associated bin */</span>
+
+  <span class="n">mchunkptr</span> <span class="n">victim</span><span class="p">;</span>                 <span class="cm">/* inspected/selected chunk */</span>
+  <span class="n">INTERNAL_SIZE_T</span> <span class="n">size</span><span class="p">;</span>             <span class="cm">/* its size */</span>
+  <span class="kt">int</span> <span class="n">victim_index</span><span class="p">;</span>                 <span class="cm">/* its bin index */</span>
+
+  <span class="n">mchunkptr</span> <span class="n">remainder</span><span class="p">;</span>              <span class="cm">/* remainder from a split */</span>
+  <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">remainder_size</span><span class="p">;</span>     <span class="cm">/* its size */</span>
+
+  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">block</span><span class="p">;</span>               <span class="cm">/* bit map traverser */</span>
+  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">bit</span><span class="p">;</span>                 <span class="cm">/* bit map traverser */</span>
+  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">map</span><span class="p">;</span>                 <span class="cm">/* current word of binmap */</span>
+
+  <span class="n">mchunkptr</span> <span class="n">fwd</span><span class="p">;</span>                    <span class="cm">/* misc temp for linking */</span>
+  <span class="n">mchunkptr</span> <span class="n">bck</span><span class="p">;</span>                    <span class="cm">/* misc temp for linking */</span>
+
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">errstr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+  <span class="cm">/*
+</span><span class="cm">     Convert request size to internal form by adding SIZE_SZ bytes
+</span><span class="cm">     overhead plus possibly more to obtain necessary alignment and/or
+</span><span class="cm">     to obtain a size of at least MINSIZE, the smallest allocatable
+</span><span class="cm">     size. Also, checked_request2size traps (returning 0) request sizes
+</span><span class="cm">     that are so large that they wrap around zero when padded and
+</span><span class="cm">     aligned.
+</span><span class="cm">   */</span>
+
+  <span class="n">checked_request2size</span> <span class="p">(</span><span class="n">bytes</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+
+  <span class="cm">/* There are no usable arenas.  Fall back to sysmalloc to get a chunk from
+</span><span class="cm">     mmap.  */</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">__glibc_unlikely</span> <span class="p">(</span><span class="n">av</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">))</span>
+    <span class="p">{</span>
+      <span class="kt">void</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">sysmalloc</span> <span class="p">(</span><span class="n">nb</span><span class="p">,</span> <span class="n">av</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+    <span class="n">alloc_perturb</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+      <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+    <span class="p">}</span>
+
+  <span class="cm">/*
+</span><span class="cm">     If the size qualifies as a fastbin, first check corresponding bin.
+</span><span class="cm">     This code is safe to execute even if av is not yet initialized, so we
+</span><span class="cm">     can try it without checking, which saves some time on this fast path.
+</span><span class="cm">   */</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">nb</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">get_max_fast</span> <span class="p">()))</span>
+    <span class="p">{</span>
+      <span class="n">idx</span> <span class="o">=</span> <span class="n">fastbin_index</span> <span class="p">(</span><span class="n">nb</span><span class="p">);</span>
+      <span class="n">mfastbinptr</span> <span class="o">*</span><span class="n">fb</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">fastbin</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">idx</span><span class="p">);</span>
+      <span class="n">mchunkptr</span> <span class="n">pp</span> <span class="o">=</span> <span class="o">*</span><span class="n">fb</span><span class="p">;</span>
+      <span class="k">do</span>
+        <span class="p">{</span>
+          <span class="n">victim</span> <span class="o">=</span> <span class="n">pp</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">victim</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="k">while</span> <span class="p">((</span><span class="n">pp</span> <span class="o">=</span> <span class="n">catomic_compare_and_exchange_val_acq</span> <span class="p">(</span><span class="n">fb</span><span class="p">,</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">,</span> <span class="n">victim</span><span class="p">))</span>
+             <span class="o">!=</span> <span class="n">victim</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">victim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">fastbin_index</span> <span class="p">(</span><span class="n">chunksize</span> <span class="p">(</span><span class="n">victim</span><span class="p">))</span> <span class="o">!=</span> <span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="p">{</span>
+              <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;malloc(): memory corruption (fast)&#34;</span><span class="p">;</span>
+            <span class="nl">errout</span><span class="p">:</span>
+              <span class="n">malloc_printerr</span> <span class="p">(</span><span class="n">check_action</span><span class="p">,</span> <span class="n">errstr</span><span class="p">,</span> <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">victim</span><span class="p">),</span> <span class="n">av</span><span class="p">);</span>
+              <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="n">check_remalloced_chunk</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+          <span class="kt">void</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+          <span class="n">alloc_perturb</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+          <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+  <span class="cm">/*
+</span><span class="cm">     If a small request, check regular bin.  Since these &#34;smallbins&#34;
+</span><span class="cm">     hold one size each, no searching within bins is necessary.
+</span><span class="cm">     (For a large request, we need to wait until unsorted chunks are
+</span><span class="cm">     processed to find best fit. But for small ones, fits are exact
+</span><span class="cm">     anyway, so we can check now, which is faster.)
+</span><span class="cm">   */</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">nb</span><span class="p">))</span>
+    <span class="p">{</span>
+      <span class="n">idx</span> <span class="o">=</span> <span class="n">smallbin_index</span> <span class="p">(</span><span class="n">nb</span><span class="p">);</span>
+      <span class="n">bin</span> <span class="o">=</span> <span class="n">bin_at</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">idx</span><span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">((</span><span class="n">victim</span> <span class="o">=</span> <span class="n">last</span> <span class="p">(</span><span class="n">bin</span><span class="p">))</span> <span class="o">!=</span> <span class="n">bin</span><span class="p">)</span>
+        <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">victim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="cm">/* initialization check */</span>
+            <span class="n">malloc_consolidate</span> <span class="p">(</span><span class="n">av</span><span class="p">);</span>
+          <span class="k">else</span>
+            <span class="p">{</span>
+              <span class="n">bck</span> <span class="o">=</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">__glibc_unlikely</span> <span class="p">(</span><span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">!=</span> <span class="n">victim</span><span class="p">))</span>
+                <span class="p">{</span>
+                  <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;malloc(): smallbin double linked list corrupted&#34;</span><span class="p">;</span>
+                  <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+                <span class="p">}</span>
+              <span class="n">set_inuse_bit_at_offset</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+              <span class="n">bin</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">bck</span><span class="p">;</span>
+              <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">bin</span><span class="p">;</span>
+
+              <span class="k">if</span> <span class="p">(</span><span class="n">av</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">main_arena</span><span class="p">)</span>
+                <span class="n">victim</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">|=</span> <span class="n">NON_MAIN_ARENA</span><span class="p">;</span>
+              <span class="n">check_malloced_chunk</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+              <span class="kt">void</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+              <span class="n">alloc_perturb</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+              <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+  <span class="cm">/*
+</span><span class="cm">     If this is a large request, consolidate fastbins before continuing.
+</span><span class="cm">     While it might look excessive to kill all fastbins before
+</span><span class="cm">     even seeing if there is space available, this avoids
+</span><span class="cm">     fragmentation problems normally associated with fastbins.
+</span><span class="cm">     Also, in practice, programs tend to have runs of either small or
+</span><span class="cm">     large requests, but less often mixtures, so consolidation is not
+</span><span class="cm">     invoked all that often in most programs. And the programs that
+</span><span class="cm">     it is called frequently in otherwise tend to fragment.
+</span><span class="cm">   */</span>
+
+  <span class="k">else</span>
+    <span class="p">{</span>
+      <span class="n">idx</span> <span class="o">=</span> <span class="n">largebin_index</span> <span class="p">(</span><span class="n">nb</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">have_fastchunks</span> <span class="p">(</span><span class="n">av</span><span class="p">))</span>
+        <span class="n">malloc_consolidate</span> <span class="p">(</span><span class="n">av</span><span class="p">);</span>
+    <span class="p">}</span>
+
+  <span class="cm">/*
+</span><span class="cm">     Process recently freed or remaindered chunks, taking one only if
+</span><span class="cm">     it is exact fit, or, if this a small request, the chunk is remainder from
+</span><span class="cm">     the most recent non-exact fit.  Place other traversed chunks in
+</span><span class="cm">     bins.  Note that this step is the only place in any routine where
+</span><span class="cm">     chunks are placed in bins.
+</span><span class="cm">
+</span><span class="cm">     The outer loop here is needed because we might not realize until
+</span><span class="cm">     near the end of malloc that we should have consolidated, so must
+</span><span class="cm">     do so and retry. This happens at most once, and only when we would
+</span><span class="cm">     otherwise need to expand memory to service a &#34;small&#34; request.
+</span><span class="cm">   */</span>
+
+  <span class="k">for</span> <span class="p">(;;</span> <span class="p">)</span>
+    <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">iters</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">while</span> <span class="p">((</span><span class="n">victim</span> <span class="o">=</span> <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">bk</span><span class="p">)</span> <span class="o">!=</span> <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">))</span>
+        <span class="p">{</span>
+          <span class="n">bck</span> <span class="o">=</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">victim</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">SIZE_SZ</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+              <span class="o">||</span> <span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">victim</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">system_mem</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">malloc_printerr</span> <span class="p">(</span><span class="n">check_action</span><span class="p">,</span> <span class="s">&#34;malloc(): memory corruption&#34;</span><span class="p">,</span>
+                             <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">victim</span><span class="p">),</span> <span class="n">av</span><span class="p">);</span>
+          <span class="n">size</span> <span class="o">=</span> <span class="n">chunksize</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+
+          <span class="cm">/*
+</span><span class="cm">             If a small request, try to use last remainder if it is the
+</span><span class="cm">             only chunk in unsorted bin.  This helps promote locality for
+</span><span class="cm">             runs of consecutive small requests. This is the only
+</span><span class="cm">             exception to best-fit, and applies only when there is
+</span><span class="cm">             no exact fit for a small chunk.
+</span><span class="cm">           */</span>
+
+          <span class="k">if</span> <span class="p">(</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">nb</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+              <span class="n">bck</span> <span class="o">==</span> <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+              <span class="n">victim</span> <span class="o">==</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">last_remainder</span> <span class="o">&amp;&amp;</span>
+              <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">nb</span> <span class="o">+</span> <span class="n">MINSIZE</span><span class="p">))</span>
+            <span class="p">{</span>
+              <span class="cm">/* split and reattach remainder */</span>
+              <span class="n">remainder_size</span> <span class="o">=</span> <span class="n">size</span> <span class="o">-</span> <span class="n">nb</span><span class="p">;</span>
+              <span class="n">remainder</span> <span class="o">=</span> <span class="n">chunk_at_offset</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+              <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">remainder</span><span class="p">;</span>
+              <span class="n">av</span><span class="o">-&gt;</span><span class="n">last_remainder</span> <span class="o">=</span> <span class="n">remainder</span><span class="p">;</span>
+              <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">);</span>
+              <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">remainder_size</span><span class="p">))</span>
+                <span class="p">{</span>
+                  <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+                  <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+                <span class="p">}</span>
+
+              <span class="n">set_head</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">nb</span> <span class="o">|</span> <span class="n">PREV_INUSE</span> <span class="o">|</span>
+                        <span class="p">(</span><span class="n">av</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">main_arena</span> <span class="o">?</span> <span class="nl">NON_MAIN_ARENA</span> <span class="p">:</span> <span class="mi">0</span><span class="p">));</span>
+              <span class="n">set_head</span> <span class="p">(</span><span class="n">remainder</span><span class="p">,</span> <span class="n">remainder_size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+              <span class="n">set_foot</span> <span class="p">(</span><span class="n">remainder</span><span class="p">,</span> <span class="n">remainder_size</span><span class="p">);</span>
+
+              <span class="n">check_malloced_chunk</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+              <span class="kt">void</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+              <span class="n">alloc_perturb</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+              <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+            <span class="p">}</span>
+
+          <span class="cm">/* remove from unsorted list */</span>
+          <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">bck</span><span class="p">;</span>
+          <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">);</span>
+
+          <span class="cm">/* Take now instead of binning if exact fit */</span>
+
+          <span class="k">if</span> <span class="p">(</span><span class="n">size</span> <span class="o">==</span> <span class="n">nb</span><span class="p">)</span>
+            <span class="p">{</span>
+              <span class="n">set_inuse_bit_at_offset</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+              <span class="k">if</span> <span class="p">(</span><span class="n">av</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">main_arena</span><span class="p">)</span>
+                <span class="n">victim</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">|=</span> <span class="n">NON_MAIN_ARENA</span><span class="p">;</span>
+              <span class="n">check_malloced_chunk</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+              <span class="kt">void</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+              <span class="n">alloc_perturb</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+              <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+            <span class="p">}</span>
+
+          <span class="cm">/* place chunk in bin */</span>
+
+          <span class="k">if</span> <span class="p">(</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">size</span><span class="p">))</span>
+            <span class="p">{</span>
+              <span class="n">victim_index</span> <span class="o">=</span> <span class="n">smallbin_index</span> <span class="p">(</span><span class="n">size</span><span class="p">);</span>
+              <span class="n">bck</span> <span class="o">=</span> <span class="n">bin_at</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim_index</span><span class="p">);</span>
+              <span class="n">fwd</span> <span class="o">=</span> <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="k">else</span>
+            <span class="p">{</span>
+              <span class="n">victim_index</span> <span class="o">=</span> <span class="n">largebin_index</span> <span class="p">(</span><span class="n">size</span><span class="p">);</span>
+              <span class="n">bck</span> <span class="o">=</span> <span class="n">bin_at</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim_index</span><span class="p">);</span>
+              <span class="n">fwd</span> <span class="o">=</span> <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+
+              <span class="cm">/* maintain large bins in sorted order */</span>
+              <span class="k">if</span> <span class="p">(</span><span class="n">fwd</span> <span class="o">!=</span> <span class="n">bck</span><span class="p">)</span>
+                <span class="p">{</span>
+                  <span class="cm">/* Or with inuse bit to speed comparisons */</span>
+                  <span class="n">size</span> <span class="o">|=</span> <span class="n">PREV_INUSE</span><span class="p">;</span>
+                  <span class="cm">/* if smaller than smallest, bypass loop below */</span>
+                  <span class="n">assert</span> <span class="p">((</span><span class="n">bck</span><span class="o">-&gt;</span><span class="n">bk</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="n">NON_MAIN_ARENA</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">);</span>
+                  <span class="k">if</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">&lt;</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">bck</span><span class="o">-&gt;</span><span class="n">bk</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">))</span>
+                    <span class="p">{</span>
+                      <span class="n">fwd</span> <span class="o">=</span> <span class="n">bck</span><span class="p">;</span>
+                      <span class="n">bck</span> <span class="o">=</span> <span class="n">bck</span><span class="o">-&gt;</span><span class="n">bk</span><span class="p">;</span>
+
+                      <span class="n">victim</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+                      <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">fd</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="p">;</span>
+                      <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">fd</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="n">victim</span><span class="p">;</span>
+                    <span class="p">}</span>
+                  <span class="k">else</span>
+                    <span class="p">{</span>
+                      <span class="n">assert</span> <span class="p">((</span><span class="n">fwd</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="n">NON_MAIN_ARENA</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">);</span>
+                      <span class="k">while</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">)</span>
+                        <span class="p">{</span>
+                          <span class="n">fwd</span> <span class="o">=</span> <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span><span class="p">;</span>
+                          <span class="n">assert</span> <span class="p">((</span><span class="n">fwd</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="n">NON_MAIN_ARENA</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">);</span>
+                        <span class="p">}</span>
+
+                      <span class="k">if</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="n">size</span> <span class="o">==</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">)</span>
+                        <span class="cm">/* Always insert in the second position.  */</span>
+                        <span class="n">fwd</span> <span class="o">=</span> <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+                      <span class="k">else</span>
+                        <span class="p">{</span>
+                          <span class="n">victim</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">;</span>
+                          <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="p">;</span>
+                          <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="n">victim</span><span class="p">;</span>
+                          <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="n">victim</span><span class="p">;</span>
+                        <span class="p">}</span>
+                      <span class="n">bck</span> <span class="o">=</span> <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span><span class="p">;</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+              <span class="k">else</span>
+                <span class="n">victim</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="n">victim</span><span class="p">;</span>
+            <span class="p">}</span>
+
+          <span class="n">mark_bin</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim_index</span><span class="p">);</span>
+          <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">bck</span><span class="p">;</span>
+          <span class="n">victim</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">;</span>
+          <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">victim</span><span class="p">;</span>
+          <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">victim</span><span class="p">;</span>
+
+<span class="cp">#define MAX_ITERS       10000
+</span><span class="cp"></span>          <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">iters</span> <span class="o">&gt;=</span> <span class="n">MAX_ITERS</span><span class="p">)</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+      <span class="cm">/*
+</span><span class="cm">         If a large request, scan through the chunks of current bin in
+</span><span class="cm">         sorted order to find smallest that fits.  Use the skip list for this.
+</span><span class="cm">       */</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">nb</span><span class="p">))</span>
+        <span class="p">{</span>
+          <span class="n">bin</span> <span class="o">=</span> <span class="n">bin_at</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">idx</span><span class="p">);</span>
+
+          <span class="cm">/* skip scan if empty or largest chunk is too small */</span>
+          <span class="k">if</span> <span class="p">((</span><span class="n">victim</span> <span class="o">=</span> <span class="n">first</span> <span class="p">(</span><span class="n">bin</span><span class="p">))</span> <span class="o">!=</span> <span class="n">bin</span> <span class="o">&amp;&amp;</span>
+              <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">victim</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">nb</span><span class="p">))</span>
+            <span class="p">{</span>
+              <span class="n">victim</span> <span class="o">=</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="p">;</span>
+              <span class="k">while</span> <span class="p">(((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="n">chunksize</span> <span class="p">(</span><span class="n">victim</span><span class="p">))</span> <span class="o">&lt;</span>
+                      <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">nb</span><span class="p">)))</span>
+                <span class="n">victim</span> <span class="o">=</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span><span class="p">;</span>
+
+              <span class="cm">/* Avoid removing the first entry for a size so that the skip
+</span><span class="cm">                 list does not have to be rerouted.  */</span>
+              <span class="k">if</span> <span class="p">(</span><span class="n">victim</span> <span class="o">!=</span> <span class="n">last</span> <span class="p">(</span><span class="n">bin</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">==</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">fd</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">)</span>
+                <span class="n">victim</span> <span class="o">=</span> <span class="n">victim</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+
+              <span class="n">remainder_size</span> <span class="o">=</span> <span class="n">size</span> <span class="o">-</span> <span class="n">nb</span><span class="p">;</span>
+              <span class="n">unlink</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim</span><span class="p">,</span> <span class="n">bck</span><span class="p">,</span> <span class="n">fwd</span><span class="p">);</span>
+
+              <span class="cm">/* Exhaust */</span>
+              <span class="k">if</span> <span class="p">(</span><span class="n">remainder_size</span> <span class="o">&lt;</span> <span class="n">MINSIZE</span><span class="p">)</span>
+                <span class="p">{</span>
+                  <span class="n">set_inuse_bit_at_offset</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+                  <span class="k">if</span> <span class="p">(</span><span class="n">av</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">main_arena</span><span class="p">)</span>
+                    <span class="n">victim</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">|=</span> <span class="n">NON_MAIN_ARENA</span><span class="p">;</span>
+                <span class="p">}</span>
+              <span class="cm">/* Split */</span>
+              <span class="k">else</span>
+                <span class="p">{</span>
+                  <span class="n">remainder</span> <span class="o">=</span> <span class="n">chunk_at_offset</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+                  <span class="cm">/* We cannot assume the unsorted list is empty and therefore
+</span><span class="cm">                     have to perform a complete insert here.  */</span>
+                  <span class="n">bck</span> <span class="o">=</span> <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">);</span>
+                  <span class="n">fwd</span> <span class="o">=</span> <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">__glibc_unlikely</span> <span class="p">(</span><span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">!=</span> <span class="n">bck</span><span class="p">))</span>
+                    <span class="p">{</span>
+                      <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;malloc(): corrupted unsorted chunks&#34;</span><span class="p">;</span>
+                      <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+                    <span class="p">}</span>
+                  <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">bck</span><span class="p">;</span>
+                  <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">;</span>
+                  <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">remainder</span><span class="p">;</span>
+                  <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">remainder</span><span class="p">;</span>
+                  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">remainder_size</span><span class="p">))</span>
+                    <span class="p">{</span>
+                      <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+                      <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+                    <span class="p">}</span>
+                  <span class="n">set_head</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">nb</span> <span class="o">|</span> <span class="n">PREV_INUSE</span> <span class="o">|</span>
+                            <span class="p">(</span><span class="n">av</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">main_arena</span> <span class="o">?</span> <span class="nl">NON_MAIN_ARENA</span> <span class="p">:</span> <span class="mi">0</span><span class="p">));</span>
+                  <span class="n">set_head</span> <span class="p">(</span><span class="n">remainder</span><span class="p">,</span> <span class="n">remainder_size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+                  <span class="n">set_foot</span> <span class="p">(</span><span class="n">remainder</span><span class="p">,</span> <span class="n">remainder_size</span><span class="p">);</span>
+                <span class="p">}</span>
+              <span class="n">check_malloced_chunk</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+              <span class="kt">void</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+              <span class="n">alloc_perturb</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+              <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+      <span class="cm">/*
+</span><span class="cm">         Search for a chunk by scanning bins, starting with next largest
+</span><span class="cm">         bin. This search is strictly by best-fit; i.e., the smallest
+</span><span class="cm">         (with ties going to approximately the least recently used) chunk
+</span><span class="cm">         that fits is selected.
+</span><span class="cm">
+</span><span class="cm">         The bitmap avoids needing to check that most blocks are nonempty.
+</span><span class="cm">         The particular case of skipping all bins during warm-up phases
+</span><span class="cm">         when no chunks have been returned yet is faster than it might look.
+</span><span class="cm">       */</span>
+
+      <span class="o">++</span><span class="n">idx</span><span class="p">;</span>
+      <span class="n">bin</span> <span class="o">=</span> <span class="n">bin_at</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">idx</span><span class="p">);</span>
+      <span class="n">block</span> <span class="o">=</span> <span class="n">idx2block</span> <span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+      <span class="n">map</span> <span class="o">=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">binmap</span><span class="p">[</span><span class="n">block</span><span class="p">];</span>
+      <span class="n">bit</span> <span class="o">=</span> <span class="n">idx2bit</span> <span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+
+      <span class="k">for</span> <span class="p">(;;</span> <span class="p">)</span>
+        <span class="p">{</span>
+          <span class="cm">/* Skip rest of block if there are no more set bits in this block.  */</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">bit</span> <span class="o">&gt;</span> <span class="n">map</span> <span class="o">||</span> <span class="n">bit</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">{</span>
+              <span class="k">do</span>
+                <span class="p">{</span>
+                  <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">block</span> <span class="o">&gt;=</span> <span class="n">BINMAPSIZE</span><span class="p">)</span> <span class="cm">/* out of bins */</span>
+                    <span class="k">goto</span> <span class="n">use_top</span><span class="p">;</span>
+                <span class="p">}</span>
+              <span class="k">while</span> <span class="p">((</span><span class="n">map</span> <span class="o">=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">binmap</span><span class="p">[</span><span class="n">block</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">);</span>
+
+              <span class="n">bin</span> <span class="o">=</span> <span class="n">bin_at</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="p">(</span><span class="n">block</span> <span class="o">&lt;&lt;</span> <span class="n">BINMAPSHIFT</span><span class="p">));</span>
+              <span class="n">bit</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+            <span class="p">}</span>
+
+          <span class="cm">/* Advance to bin with set bit. There must be one. */</span>
+          <span class="k">while</span> <span class="p">((</span><span class="n">bit</span> <span class="o">&amp;</span> <span class="n">map</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">{</span>
+              <span class="n">bin</span> <span class="o">=</span> <span class="n">next_bin</span> <span class="p">(</span><span class="n">bin</span><span class="p">);</span>
+              <span class="n">bit</span> <span class="o">&lt;&lt;=</span> <span class="mi">1</span><span class="p">;</span>
+              <span class="n">assert</span> <span class="p">(</span><span class="n">bit</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
+            <span class="p">}</span>
+
+          <span class="cm">/* Inspect the bin. It is likely to be non-empty */</span>
+          <span class="n">victim</span> <span class="o">=</span> <span class="n">last</span> <span class="p">(</span><span class="n">bin</span><span class="p">);</span>
+
+          <span class="cm">/*  If a false alarm (empty bin), clear the bit. */</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">victim</span> <span class="o">==</span> <span class="n">bin</span><span class="p">)</span>
+            <span class="p">{</span>
+              <span class="n">av</span><span class="o">-&gt;</span><span class="n">binmap</span><span class="p">[</span><span class="n">block</span><span class="p">]</span> <span class="o">=</span> <span class="n">map</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">bit</span><span class="p">;</span> <span class="cm">/* Write through */</span>
+              <span class="n">bin</span> <span class="o">=</span> <span class="n">next_bin</span> <span class="p">(</span><span class="n">bin</span><span class="p">);</span>
+              <span class="n">bit</span> <span class="o">&lt;&lt;=</span> <span class="mi">1</span><span class="p">;</span>
+            <span class="p">}</span>
+
+          <span class="k">else</span>
+            <span class="p">{</span>
+              <span class="n">size</span> <span class="o">=</span> <span class="n">chunksize</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+
+              <span class="cm">/*  We know the first chunk in this bin is big enough to use. */</span>
+              <span class="n">assert</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">nb</span><span class="p">));</span>
+
+              <span class="n">remainder_size</span> <span class="o">=</span> <span class="n">size</span> <span class="o">-</span> <span class="n">nb</span><span class="p">;</span>
+
+              <span class="cm">/* unlink */</span>
+              <span class="n">unlink</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim</span><span class="p">,</span> <span class="n">bck</span><span class="p">,</span> <span class="n">fwd</span><span class="p">);</span>
+
+              <span class="cm">/* Exhaust */</span>
+              <span class="k">if</span> <span class="p">(</span><span class="n">remainder_size</span> <span class="o">&lt;</span> <span class="n">MINSIZE</span><span class="p">)</span>
+                <span class="p">{</span>
+                  <span class="n">set_inuse_bit_at_offset</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+                  <span class="k">if</span> <span class="p">(</span><span class="n">av</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">main_arena</span><span class="p">)</span>
+                    <span class="n">victim</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">|=</span> <span class="n">NON_MAIN_ARENA</span><span class="p">;</span>
+                <span class="p">}</span>
+
+              <span class="cm">/* Split */</span>
+              <span class="k">else</span>
+                <span class="p">{</span>
+                  <span class="n">remainder</span> <span class="o">=</span> <span class="n">chunk_at_offset</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+
+                  <span class="cm">/* We cannot assume the unsorted list is empty and therefore
+</span><span class="cm">                     have to perform a complete insert here.  */</span>
+                  <span class="n">bck</span> <span class="o">=</span> <span class="n">unsorted_chunks</span> <span class="p">(</span><span class="n">av</span><span class="p">);</span>
+                  <span class="n">fwd</span> <span class="o">=</span> <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">__glibc_unlikely</span> <span class="p">(</span><span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">!=</span> <span class="n">bck</span><span class="p">))</span>
+                    <span class="p">{</span>
+                      <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;malloc(): corrupted unsorted chunks 2&#34;</span><span class="p">;</span>
+                      <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+                    <span class="p">}</span>
+                  <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">bck</span><span class="p">;</span>
+                  <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">;</span>
+                  <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">remainder</span><span class="p">;</span>
+                  <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">remainder</span><span class="p">;</span>
+
+                  <span class="cm">/* advertise as last remainder */</span>
+                  <span class="k">if</span> <span class="p">(</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">nb</span><span class="p">))</span>
+                    <span class="n">av</span><span class="o">-&gt;</span><span class="n">last_remainder</span> <span class="o">=</span> <span class="n">remainder</span><span class="p">;</span>
+                  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">remainder_size</span><span class="p">))</span>
+                    <span class="p">{</span>
+                      <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+                      <span class="n">remainder</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+                    <span class="p">}</span>
+                  <span class="n">set_head</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">nb</span> <span class="o">|</span> <span class="n">PREV_INUSE</span> <span class="o">|</span>
+                            <span class="p">(</span><span class="n">av</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">main_arena</span> <span class="o">?</span> <span class="nl">NON_MAIN_ARENA</span> <span class="p">:</span> <span class="mi">0</span><span class="p">));</span>
+                  <span class="n">set_head</span> <span class="p">(</span><span class="n">remainder</span><span class="p">,</span> <span class="n">remainder_size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+                  <span class="n">set_foot</span> <span class="p">(</span><span class="n">remainder</span><span class="p">,</span> <span class="n">remainder_size</span><span class="p">);</span>
+                <span class="p">}</span>
+              <span class="n">check_malloced_chunk</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+              <span class="kt">void</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+              <span class="n">alloc_perturb</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+              <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+    <span class="nl">use_top</span><span class="p">:</span>
+      <span class="cm">/*
+</span><span class="cm">         If large enough, split off the chunk bordering the end of memory
+</span><span class="cm">         (held in av-&gt;top). Note that this is in accord with the best-fit
+</span><span class="cm">         search rule.  In effect, av-&gt;top is treated as larger (and thus
+</span><span class="cm">         less well fitting) than any other available chunk since it can
+</span><span class="cm">         be extended to be as large as necessary (up to system
+</span><span class="cm">         limitations).
+</span><span class="cm">
+</span><span class="cm">         We require that av-&gt;top always exists (i.e., has size &gt;=
+</span><span class="cm">         MINSIZE) after initialization, so if it would otherwise be
+</span><span class="cm">         exhausted by current request, it is replenished. (The main
+</span><span class="cm">         reason for ensuring it exists is that we may need MINSIZE space
+</span><span class="cm">         to put in fenceposts in sysmalloc.)
+</span><span class="cm">       */</span>
+
+      <span class="n">victim</span> <span class="o">=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span><span class="p">;</span>
+      <span class="n">size</span> <span class="o">=</span> <span class="n">chunksize</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span> <span class="p">(</span><span class="n">nb</span> <span class="o">+</span> <span class="n">MINSIZE</span><span class="p">))</span>
+        <span class="p">{</span>
+          <span class="n">remainder_size</span> <span class="o">=</span> <span class="n">size</span> <span class="o">-</span> <span class="n">nb</span><span class="p">;</span>
+          <span class="n">remainder</span> <span class="o">=</span> <span class="n">chunk_at_offset</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+          <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span> <span class="o">=</span> <span class="n">remainder</span><span class="p">;</span>
+          <span class="n">set_head</span> <span class="p">(</span><span class="n">victim</span><span class="p">,</span> <span class="n">nb</span> <span class="o">|</span> <span class="n">PREV_INUSE</span> <span class="o">|</span>
+                    <span class="p">(</span><span class="n">av</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">main_arena</span> <span class="o">?</span> <span class="nl">NON_MAIN_ARENA</span> <span class="p">:</span> <span class="mi">0</span><span class="p">));</span>
+          <span class="n">set_head</span> <span class="p">(</span><span class="n">remainder</span><span class="p">,</span> <span class="n">remainder_size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+
+          <span class="n">check_malloced_chunk</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">victim</span><span class="p">,</span> <span class="n">nb</span><span class="p">);</span>
+          <span class="kt">void</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">victim</span><span class="p">);</span>
+          <span class="n">alloc_perturb</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+          <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+        <span class="p">}</span>
+
+      <span class="cm">/* When we are using atomic ops to free fast chunks we can get
+</span><span class="cm">         here for all block sizes.  */</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">have_fastchunks</span> <span class="p">(</span><span class="n">av</span><span class="p">))</span>
+        <span class="p">{</span>
+          <span class="n">malloc_consolidate</span> <span class="p">(</span><span class="n">av</span><span class="p">);</span>
+          <span class="cm">/* restore original bin index */</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">nb</span><span class="p">))</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">smallbin_index</span> <span class="p">(</span><span class="n">nb</span><span class="p">);</span>
+          <span class="k">else</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">largebin_index</span> <span class="p">(</span><span class="n">nb</span><span class="p">);</span>
+        <span class="p">}</span>
+
+      <span class="cm">/*
+</span><span class="cm">         Otherwise, relay to handle system-dependent cases
+</span><span class="cm">       */</span>
+      <span class="k">else</span>
+        <span class="p">{</span>
+          <span class="kt">void</span> <span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="n">sysmalloc</span> <span class="p">(</span><span class="n">nb</span><span class="p">,</span> <span class="n">av</span><span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+            <span class="n">alloc_perturb</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+          <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h4 id="242-_int_free源代码">2.4.2 _int_free()源代码</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C">
+<span class="cm">/*
+</span><span class="cm">   ------------------------------ free ------------------------------
+</span><span class="cm"> */</span>
+
+<span class="k">static</span> <span class="kt">void</span>
+<span class="nf">_int_free</span> <span class="p">(</span><span class="n">mstate</span> <span class="n">av</span><span class="p">,</span> <span class="n">mchunkptr</span> <span class="n">p</span><span class="p">,</span> <span class="kt">int</span> <span class="n">have_lock</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">INTERNAL_SIZE_T</span> <span class="n">size</span><span class="p">;</span>        <span class="cm">/* its size */</span>
+  <span class="n">mfastbinptr</span> <span class="o">*</span><span class="n">fb</span><span class="p">;</span>             <span class="cm">/* associated fastbin */</span>
+  <span class="n">mchunkptr</span> <span class="n">nextchunk</span><span class="p">;</span>         <span class="cm">/* next contiguous chunk */</span>
+  <span class="n">INTERNAL_SIZE_T</span> <span class="n">nextsize</span><span class="p">;</span>    <span class="cm">/* its size */</span>
+  <span class="kt">int</span> <span class="n">nextinuse</span><span class="p">;</span>               <span class="cm">/* true if nextchunk is used */</span>
+  <span class="n">INTERNAL_SIZE_T</span> <span class="n">prevsize</span><span class="p">;</span>    <span class="cm">/* size of previous contiguous chunk */</span>
+  <span class="n">mchunkptr</span> <span class="n">bck</span><span class="p">;</span>               <span class="cm">/* misc temp for linking */</span>
+  <span class="n">mchunkptr</span> <span class="n">fwd</span><span class="p">;</span>               <span class="cm">/* misc temp for linking */</span>
+
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">errstr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">locked</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="n">size</span> <span class="o">=</span> <span class="n">chunksize</span> <span class="p">(</span><span class="n">p</span><span class="p">);</span>
+
+  <span class="cm">/* Little security check which won&#39;t hurt performance: the
+</span><span class="cm">     allocator never wrapps around at the end of the address space.
+</span><span class="cm">     Therefore we can exclude some size values which might appear
+</span><span class="cm">     here by accident or by &#34;design&#34; from some intruder.  */</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">((</span><span class="n">uintptr_t</span><span class="p">)</span> <span class="n">p</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">uintptr_t</span><span class="p">)</span> <span class="o">-</span><span class="n">size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="o">||</span> <span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">misaligned_chunk</span> <span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="p">{</span>
+      <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;free(): invalid pointer&#34;</span><span class="p">;</span>
+    <span class="nl">errout</span><span class="p">:</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">have_lock</span> <span class="o">&amp;&amp;</span> <span class="n">locked</span><span class="p">)</span>
+        <span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="n">mutex_unlock</span> <span class="p">(</span><span class="o">&amp;</span><span class="n">av</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+      <span class="n">malloc_printerr</span> <span class="p">(</span><span class="n">check_action</span><span class="p">,</span> <span class="n">errstr</span><span class="p">,</span> <span class="n">chunk2mem</span> <span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">av</span><span class="p">);</span>
+      <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="cm">/* We know that each chunk is at least MINSIZE bytes in size or a
+</span><span class="cm">     multiple of MALLOC_ALIGNMENT.  */</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">__glibc_unlikely</span> <span class="p">(</span><span class="n">size</span> <span class="o">&lt;</span> <span class="n">MINSIZE</span> <span class="o">||</span> <span class="o">!</span><span class="n">aligned_OK</span> <span class="p">(</span><span class="n">size</span><span class="p">)))</span>
+    <span class="p">{</span>
+      <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;free(): invalid size&#34;</span><span class="p">;</span>
+      <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+    <span class="p">}</span>
+
+  <span class="n">check_inuse_chunk</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">p</span><span class="p">);</span>
+
+  <span class="cm">/*
+</span><span class="cm">    If eligible, place chunk on a fastbin so it can be found
+</span><span class="cm">    and used quickly in malloc.
+</span><span class="cm">  */</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)(</span><span class="n">size</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)(</span><span class="n">get_max_fast</span> <span class="p">())</span>
+
+<span class="cp">#if TRIM_FASTBINS
+</span><span class="cp"></span>      <span class="cm">/*
+</span><span class="cm">    If TRIM_FASTBINS set, don&#39;t place chunks
+</span><span class="cm">    bordering top into fastbins
+</span><span class="cm">      */</span>
+      <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">chunk_at_offset</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="o">!=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span><span class="p">)</span>
+<span class="cp">#endif
+</span><span class="cp"></span>      <span class="p">)</span> <span class="p">{</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">chunk_at_offset</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">SIZE_SZ</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="o">||</span> <span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">chunksize</span> <span class="p">(</span><span class="n">chunk_at_offset</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">))</span>
+                 <span class="o">&gt;=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">system_mem</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="p">{</span>
+    <span class="cm">/* We might not have a lock at this point and concurrent modifications
+</span><span class="cm">       of system_mem might have let to a false positive.  Redo the test
+</span><span class="cm">       after getting the lock.  */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">have_lock</span>
+        <span class="o">||</span> <span class="p">({</span> <span class="n">assert</span> <span class="p">(</span><span class="n">locked</span> <span class="o">==</span> <span class="mi">0</span><span class="p">);</span>
+          <span class="n">mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">av</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+          <span class="n">locked</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+          <span class="n">chunk_at_offset</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">SIZE_SZ</span>
+            <span class="o">||</span> <span class="n">chunksize</span> <span class="p">(</span><span class="n">chunk_at_offset</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">system_mem</span><span class="p">;</span>
+          <span class="p">}))</span>
+      <span class="p">{</span>
+        <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;free(): invalid next size (fast)&#34;</span><span class="p">;</span>
+        <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span> <span class="n">have_lock</span><span class="p">)</span>
+      <span class="p">{</span>
+        <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">av</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+        <span class="n">locked</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="p">}</span>
+
+    <span class="n">free_perturb</span> <span class="p">(</span><span class="n">chunk2mem</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">size</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">SIZE_SZ</span><span class="p">);</span>
+
+    <span class="n">set_fastchunks</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">idx</span> <span class="o">=</span> <span class="n">fastbin_index</span><span class="p">(</span><span class="n">size</span><span class="p">);</span>
+    <span class="n">fb</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">fastbin</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">idx</span><span class="p">);</span>
+
+    <span class="cm">/* Atomically link P to its fastbin: P-&gt;FD = *FB; *FB = P;  */</span>
+    <span class="n">mchunkptr</span> <span class="n">old</span> <span class="o">=</span> <span class="o">*</span><span class="n">fb</span><span class="p">,</span> <span class="n">old2</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">old_idx</span> <span class="o">=</span> <span class="o">~</span><span class="mi">0u</span><span class="p">;</span>
+    <span class="k">do</span>
+      <span class="p">{</span>
+    <span class="cm">/* Check that the top of the bin is not the record we are going to add
+</span><span class="cm">       (i.e., double free).  */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">old</span> <span class="o">==</span> <span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="p">{</span>
+        <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;double free or corruption (fasttop)&#34;</span><span class="p">;</span>
+        <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="cm">/* Check that size of fastbin chunk at the top is the same as
+</span><span class="cm">       size of the chunk that we are adding.  We can dereference OLD
+</span><span class="cm">       only if we have the lock, otherwise it might have already been
+</span><span class="cm">       deallocated.  See use of OLD_IDX below for the actual check.  */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">have_lock</span> <span class="o">&amp;&amp;</span> <span class="n">old</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+      <span class="n">old_idx</span> <span class="o">=</span> <span class="n">fastbin_index</span><span class="p">(</span><span class="n">chunksize</span><span class="p">(</span><span class="n">old</span><span class="p">));</span>
+    <span class="n">p</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">old2</span> <span class="o">=</span> <span class="n">old</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="k">while</span> <span class="p">((</span><span class="n">old</span> <span class="o">=</span> <span class="n">catomic_compare_and_exchange_val_rel</span> <span class="p">(</span><span class="n">fb</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">old2</span><span class="p">))</span> <span class="o">!=</span> <span class="n">old2</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">have_lock</span> <span class="o">&amp;&amp;</span> <span class="n">old</span> <span class="o">!=</span> <span class="nb">NULL</span> <span class="o">&amp;&amp;</span> <span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">old_idx</span> <span class="o">!=</span> <span class="n">idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="p">{</span>
+    <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;invalid fastbin entry (free)&#34;</span><span class="p">;</span>
+    <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+      <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="cm">/*
+</span><span class="cm">    Consolidate other non-mmapped chunks as they arrive.
+</span><span class="cm">  */</span>
+
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">chunk_is_mmapped</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span> <span class="n">have_lock</span><span class="p">)</span> <span class="p">{</span>
+      <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">av</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+      <span class="n">locked</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">nextchunk</span> <span class="o">=</span> <span class="n">chunk_at_offset</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+
+    <span class="cm">/* Lightweight tests: check whether the block is already the
+</span><span class="cm">       top block.  */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">__glibc_unlikely</span> <span class="p">(</span><span class="n">p</span> <span class="o">==</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span><span class="p">))</span>
+      <span class="p">{</span>
+    <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;double free or corruption (top)&#34;</span><span class="p">;</span>
+    <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="cm">/* Or whether the next chunk is beyond the boundaries of the arena.  */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">contiguous</span> <span class="p">(</span><span class="n">av</span><span class="p">)</span>
+              <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">nextchunk</span>
+              <span class="o">&gt;=</span> <span class="p">((</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span> <span class="o">+</span> <span class="n">chunksize</span><span class="p">(</span><span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span><span class="p">)),</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="p">{</span>
+    <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;double free or corruption (out)&#34;</span><span class="p">;</span>
+    <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="cm">/* Or whether the block is actually not marked used.  */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">__glibc_unlikely</span> <span class="p">(</span><span class="o">!</span><span class="n">prev_inuse</span><span class="p">(</span><span class="n">nextchunk</span><span class="p">)))</span>
+      <span class="p">{</span>
+    <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;double free or corruption (!prev)&#34;</span><span class="p">;</span>
+    <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="n">nextsize</span> <span class="o">=</span> <span class="n">chunksize</span><span class="p">(</span><span class="n">nextchunk</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">nextchunk</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">SIZE_SZ</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="o">||</span> <span class="n">__builtin_expect</span> <span class="p">(</span><span class="n">nextsize</span> <span class="o">&gt;=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">system_mem</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="p">{</span>
+    <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;free(): invalid next size (normal)&#34;</span><span class="p">;</span>
+    <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="n">free_perturb</span> <span class="p">(</span><span class="n">chunk2mem</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">size</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">SIZE_SZ</span><span class="p">);</span>
+
+    <span class="cm">/* consolidate backward */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">prev_inuse</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="p">{</span>
+      <span class="n">prevsize</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">prev_size</span><span class="p">;</span>
+      <span class="n">size</span> <span class="o">+=</span> <span class="n">prevsize</span><span class="p">;</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">chunk_at_offset</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">-</span><span class="p">((</span><span class="kt">long</span><span class="p">)</span> <span class="n">prevsize</span><span class="p">));</span>
+      <span class="n">unlink</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">bck</span><span class="p">,</span> <span class="n">fwd</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">nextchunk</span> <span class="o">!=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span><span class="p">)</span> <span class="p">{</span>
+      <span class="cm">/* get and clear inuse bit */</span>
+      <span class="n">nextinuse</span> <span class="o">=</span> <span class="n">inuse_bit_at_offset</span><span class="p">(</span><span class="n">nextchunk</span><span class="p">,</span> <span class="n">nextsize</span><span class="p">);</span>
+
+      <span class="cm">/* consolidate forward */</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">nextinuse</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">unlink</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">nextchunk</span><span class="p">,</span> <span class="n">bck</span><span class="p">,</span> <span class="n">fwd</span><span class="p">);</span>
+    <span class="n">size</span> <span class="o">+=</span> <span class="n">nextsize</span><span class="p">;</span>
+      <span class="p">}</span> <span class="k">else</span>
+    <span class="n">clear_inuse_bit_at_offset</span><span class="p">(</span><span class="n">nextchunk</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+      <span class="cm">/*
+</span><span class="cm">    Place the chunk in unsorted chunk list. Chunks are
+</span><span class="cm">    not placed into regular bins until after they have
+</span><span class="cm">    been given one chance to be used in malloc.
+</span><span class="cm">      */</span>
+
+      <span class="n">bck</span> <span class="o">=</span> <span class="n">unsorted_chunks</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+      <span class="n">fwd</span> <span class="o">=</span> <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">__glibc_unlikely</span> <span class="p">(</span><span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">!=</span> <span class="n">bck</span><span class="p">))</span>
+    <span class="p">{</span>
+      <span class="n">errstr</span> <span class="o">=</span> <span class="s">&#34;free(): corrupted unsorted chunks&#34;</span><span class="p">;</span>
+      <span class="k">goto</span> <span class="n">errout</span><span class="p">;</span>
+    <span class="p">}</span>
+      <span class="n">p</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">;</span>
+      <span class="n">p</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">bck</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">in_smallbin_range</span><span class="p">(</span><span class="n">size</span><span class="p">))</span>
+    <span class="p">{</span>
+      <span class="n">p</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+      <span class="n">p</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="p">}</span>
+      <span class="n">bck</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+      <span class="n">fwd</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+
+      <span class="n">set_head</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+      <span class="n">set_foot</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+
+      <span class="n">check_free_chunk</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">p</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="cm">/*
+</span><span class="cm">      If the chunk borders the current high end of memory,
+</span><span class="cm">      consolidate into top
+</span><span class="cm">    */</span>
+
+    <span class="k">else</span> <span class="p">{</span>
+      <span class="n">size</span> <span class="o">+=</span> <span class="n">nextsize</span><span class="p">;</span>
+      <span class="n">set_head</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+      <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+      <span class="n">check_chunk</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">p</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="cm">/*
+</span><span class="cm">      If freeing a large space, consolidate possibly-surrounding
+</span><span class="cm">      chunks. Then, if the total unused topmost memory exceeds trim
+</span><span class="cm">      threshold, ask malloc_trim to reduce top.
+</span><span class="cm">
+</span><span class="cm">      Unless max_fast is 0, we don&#39;t know if there are fastbins
+</span><span class="cm">      bordering top, so we cannot tell for sure whether threshold
+</span><span class="cm">      has been reached unless fastbins are consolidated.  But we
+</span><span class="cm">      don&#39;t want to consolidate on each free.  As a compromise,
+</span><span class="cm">      consolidation is performed if FASTBIN_CONSOLIDATION_THRESHOLD
+</span><span class="cm">      is reached.
+</span><span class="cm">    */</span>
+
+    <span class="k">if</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)(</span><span class="n">size</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">FASTBIN_CONSOLIDATION_THRESHOLD</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">have_fastchunks</span><span class="p">(</span><span class="n">av</span><span class="p">))</span>
+    <span class="n">malloc_consolidate</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">av</span> <span class="o">==</span> <span class="o">&amp;</span><span class="n">main_arena</span><span class="p">)</span> <span class="p">{</span>
+<span class="cp">#ifndef MORECORE_CANNOT_TRIM
+</span><span class="cp"></span>    <span class="k">if</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)(</span><span class="n">chunksize</span><span class="p">(</span><span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span><span class="p">))</span> <span class="o">&gt;=</span>
+        <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)(</span><span class="n">mp_</span><span class="p">.</span><span class="n">trim_threshold</span><span class="p">))</span>
+      <span class="n">systrim</span><span class="p">(</span><span class="n">mp_</span><span class="p">.</span><span class="n">top_pad</span><span class="p">,</span> <span class="n">av</span><span class="p">);</span>
+<span class="cp">#endif
+</span><span class="cp"></span>      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="cm">/* Always try heap_trim(), even if the top chunk is not
+</span><span class="cm">       large, because the corresponding heap might go away.  */</span>
+    <span class="n">heap_info</span> <span class="o">*</span><span class="n">heap</span> <span class="o">=</span> <span class="n">heap_for_ptr</span><span class="p">(</span><span class="n">top</span><span class="p">(</span><span class="n">av</span><span class="p">));</span>
+
+    <span class="n">assert</span><span class="p">(</span><span class="n">heap</span><span class="o">-&gt;</span><span class="n">ar_ptr</span> <span class="o">==</span> <span class="n">av</span><span class="p">);</span>
+    <span class="n">heap_trim</span><span class="p">(</span><span class="n">heap</span><span class="p">,</span> <span class="n">mp_</span><span class="p">.</span><span class="n">top_pad</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span> <span class="n">have_lock</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">assert</span> <span class="p">(</span><span class="n">locked</span><span class="p">);</span>
+      <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="n">mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">av</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="cm">/*
+</span><span class="cm">    If the chunk was allocated via mmap, release via munmap().
+</span><span class="cm">  */</span>
+
+  <span class="k">else</span> <span class="p">{</span>
+    <span class="n">munmap_chunk</span> <span class="p">(</span><span class="n">p</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h4 id="243-malloc_consolidate源代码">2.4.3 malloc_consolidate()源代码</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="cm">/*
+</span><span class="cm">  ------------------------- malloc_consolidate -------------------------
+</span><span class="cm">
+</span><span class="cm">  malloc_consolidate is a specialized version of free() that tears
+</span><span class="cm">  down chunks held in fastbins.  Free itself cannot be used for this
+</span><span class="cm">  purpose since, among other things, it might place chunks back onto
+</span><span class="cm">  fastbins.  So, instead, we need to use a minor variant of the same
+</span><span class="cm">  code.
+</span><span class="cm">
+</span><span class="cm">  Also, because this routine needs to be called the first time through
+</span><span class="cm">  malloc anyway, it turns out to be the perfect place to trigger
+</span><span class="cm">  initialization code.
+</span><span class="cm">*/</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">malloc_consolidate</span><span class="p">(</span><span class="n">mstate</span> <span class="n">av</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">mfastbinptr</span><span class="o">*</span>    <span class="n">fb</span><span class="p">;</span>                 <span class="cm">/* current fastbin being consolidated */</span>
+  <span class="n">mfastbinptr</span><span class="o">*</span>    <span class="n">maxfb</span><span class="p">;</span>              <span class="cm">/* last fastbin (for loop control) */</span>
+  <span class="n">mchunkptr</span>       <span class="n">p</span><span class="p">;</span>                  <span class="cm">/* current chunk being consolidated */</span>
+  <span class="n">mchunkptr</span>       <span class="n">nextp</span><span class="p">;</span>              <span class="cm">/* next chunk to consolidate */</span>
+  <span class="n">mchunkptr</span>       <span class="n">unsorted</span> <span class="n">bin</span><span class="p">;</span>       <span class="cm">/* bin header */</span>
+  <span class="n">mchunkptr</span>       <span class="n">first_unsorted</span><span class="p">;</span>     <span class="cm">/* chunk to link to */</span>
+
+  <span class="cm">/* These have same use as in free() */</span>
+  <span class="n">mchunkptr</span>       <span class="n">nextchunk</span><span class="p">;</span>
+  <span class="n">INTERNAL_SIZE_T</span> <span class="n">size</span><span class="p">;</span>
+  <span class="n">INTERNAL_SIZE_T</span> <span class="n">nextsize</span><span class="p">;</span>
+  <span class="n">INTERNAL_SIZE_T</span> <span class="n">prevsize</span><span class="p">;</span>
+  <span class="kt">int</span>             <span class="n">nextinuse</span><span class="p">;</span>
+  <span class="n">mchunkptr</span>       <span class="n">bck</span><span class="p">;</span>
+  <span class="n">mchunkptr</span>       <span class="n">fwd</span><span class="p">;</span>
+
+  <span class="cm">/*
+</span><span class="cm">    If max_fast is 0, we know that av hasn&#39;t
+</span><span class="cm">    yet been initialized, in which case do so below
+</span><span class="cm">  */</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">get_max_fast</span> <span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">clear_fastchunks</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+
+    <span class="n">unsorted</span> <span class="n">bin</span> <span class="o">=</span> <span class="n">unsorted_chunks</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+
+    <span class="cm">/*
+</span><span class="cm">      Remove each chunk from fast bin and consolidate it, placing it
+</span><span class="cm">      then in unsorted bin. Among other reasons for doing this,
+</span><span class="cm">      placing in unsorted bin avoids needing to calculate actual bins
+</span><span class="cm">      until malloc is sure that chunks aren&#39;t immediately going to be
+</span><span class="cm">      reused anyway.
+</span><span class="cm">    */</span>
+
+    <span class="n">maxfb</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">fastbin</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">NFASTBINS</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">fb</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">fastbin</span> <span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="k">do</span> <span class="p">{</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">atomic_exchange_acq</span> <span class="p">(</span><span class="n">fb</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">do</span> <span class="p">{</span>
+      <span class="n">check_inuse_chunk</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">p</span><span class="p">);</span>
+      <span class="n">nextp</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+
+      <span class="cm">/* Slightly streamlined version of consolidation code in free() */</span>
+      <span class="n">size</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="n">PREV_INUSE</span><span class="o">|</span><span class="n">NON_MAIN_ARENA</span><span class="p">);</span>
+      <span class="n">nextchunk</span> <span class="o">=</span> <span class="n">chunk_at_offset</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+      <span class="n">nextsize</span> <span class="o">=</span> <span class="n">chunksize</span><span class="p">(</span><span class="n">nextchunk</span><span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">prev_inuse</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="p">{</span>
+        <span class="n">prevsize</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">prev_size</span><span class="p">;</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="n">prevsize</span><span class="p">;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">chunk_at_offset</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">-</span><span class="p">((</span><span class="kt">long</span><span class="p">)</span> <span class="n">prevsize</span><span class="p">));</span>
+        <span class="n">unlink</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">bck</span><span class="p">,</span> <span class="n">fwd</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">nextchunk</span> <span class="o">!=</span> <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">nextinuse</span> <span class="o">=</span> <span class="n">inuse_bit_at_offset</span><span class="p">(</span><span class="n">nextchunk</span><span class="p">,</span> <span class="n">nextsize</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">nextinuse</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">size</span> <span class="o">+=</span> <span class="n">nextsize</span><span class="p">;</span>
+          <span class="n">unlink</span><span class="p">(</span><span class="n">av</span><span class="p">,</span> <span class="n">nextchunk</span><span class="p">,</span> <span class="n">bck</span><span class="p">,</span> <span class="n">fwd</span><span class="p">);</span>
+        <span class="p">}</span> <span class="k">else</span>
+          <span class="n">clear_inuse_bit_at_offset</span><span class="p">(</span><span class="n">nextchunk</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+        <span class="n">first_unsorted</span> <span class="o">=</span> <span class="n">unsorted</span> <span class="n">bin</span><span class="o">-&gt;</span><span class="n">fd</span><span class="p">;</span>
+        <span class="n">unsorted</span> <span class="n">bin</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+        <span class="n">first_unsorted</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">in_smallbin_range</span> <span class="p">(</span><span class="n">size</span><span class="p">))</span> <span class="p">{</span>
+          <span class="n">p</span><span class="o">-&gt;</span><span class="n">fd_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+          <span class="n">p</span><span class="o">-&gt;</span><span class="n">bk_nextsize</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">set_head</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+        <span class="n">p</span><span class="o">-&gt;</span><span class="n">bk</span> <span class="o">=</span> <span class="n">unsorted</span> <span class="n">bin</span><span class="p">;</span>
+        <span class="n">p</span><span class="o">-&gt;</span><span class="n">fd</span> <span class="o">=</span> <span class="n">first_unsorted</span><span class="p">;</span>
+        <span class="n">set_foot</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="n">nextsize</span><span class="p">;</span>
+        <span class="n">set_head</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">size</span> <span class="o">|</span> <span class="n">PREV_INUSE</span><span class="p">);</span>
+        <span class="n">av</span><span class="o">-&gt;</span><span class="n">top</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+      <span class="p">}</span>
+
+    <span class="p">}</span> <span class="k">while</span> <span class="p">(</span> <span class="p">(</span><span class="n">p</span> <span class="o">=</span> <span class="n">nextp</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
+
+      <span class="p">}</span>
+    <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">fb</span><span class="o">++</span> <span class="o">!=</span> <span class="n">maxfb</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">else</span> <span class="p">{</span>
+    <span class="n">malloc_init_state</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+    <span class="n">check_malloc_state</span><span class="p">(</span><span class="n">av</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h3 id="25-参考文章">2.5 参考文章</h3>
+<ul>
+<li><a href="https://blog.csdn.net/Plus_RE/article/details/80211488" target="_blank" rel="noopener noreffer ">Glibc：浅谈 malloc() 函数具体实现</a></li>
+<li><a href="https://blog.csdn.net/Plus_RE/article/details/79258536" target="_blank" rel="noopener noreffer ">Glibc：浅谈 free() 函数具体实现</a></li>
+<li><a href="https://www.sec4.fun/2020/05/25/heapOverflow2/" target="_blank" rel="noopener noreffer ">堆溢出(2)-堆内存分配操作流程</a></li>
+<li><a href="https://www.blackhat.com/presentations/bh-usa-07/Ferguson/Whitepaper/bh-usa-07-ferguson-WP.pdf" target="_blank" rel="noopener noreffer ">Understanding the heap by breaking it</a></li>
+</ul>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>更新于 0001-01-01</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="分享到 Twitter" data-sharer="twitter" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/02-heap%E6%93%8D%E4%BD%9C_v.0.4/" data-title=""><i class="fab fa-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Facebook" data-sharer="facebook" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/02-heap%E6%93%8D%E4%BD%9C_v.0.4/"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Hacker News" data-sharer="hackernews" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/02-heap%E6%93%8D%E4%BD%9C_v.0.4/" data-title=""><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Line" data-sharer="line" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/02-heap%E6%93%8D%E4%BD%9C_v.0.4/" data-title=""><i data-svg-src="https://cdn.jsdelivr.net/npm/simple-icons@7.3.0/icons/line.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 微博" data-sharer="weibo" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/02-heap%E6%93%8D%E4%BD%9C_v.0.4/" data-title=""><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">返回</a></span>&nbsp;|&nbsp;<span><a href="../../../">主页</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav">
+            <a href="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/" class="next" rel="next" title="设备安全: 打印机">设备安全: 打印机<i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="回到顶部">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="查看评论">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sharer.js@0.5.1/sharer.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"复制到剪贴板","maxShownLines":50},"comment":{}};</script><script type="text/javascript" src="../../../js/theme.min.js"></script></body>
+</html>

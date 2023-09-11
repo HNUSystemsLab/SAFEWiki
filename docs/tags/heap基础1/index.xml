@@ -1,0 +1,16 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>heap基础1 - 标签 - 安全维基</title>
+        <link>/tags/heap%E5%9F%BA%E7%A1%801/</link>
+        <description>heap基础1 - 标签 - 安全维基</description>
+        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><managingEditor>admin@gmail-1.com (admin)</managingEditor>
+            <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate><atom:link href="/tags/heap%E5%9F%BA%E7%A1%801/" rel="self" type="application/rss+xml" /><item>
+    <title>heap基础 new </title>
+    <link>/posts/1-heap%E5%9F%BA%E7%A1%80/01-heap%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5_v3.0/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%9F%BA%E7%A1%80/01-heap%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5_v3.0/</guid>
+    <description><![CDATA[1 重要概念-arena、chunks、bins 当开发人员使用各种基于栈的漏洞缓解措施时，攻击者通常使用堆相关漏洞（如use-after-fr]]></description>
+</item>
+</channel>
+</rss>

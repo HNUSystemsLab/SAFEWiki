@@ -1,0 +1,81 @@
+#baseURL = 'http://example.org/'
+#languageCode = 'en-us'
+title = '安全维基'
+#theme = 'ananke'
+
+baseURL = ""
+relativeUrls = true
+# [en, zh-cn, fr, pl, ...] determines default content language
+# [en, zh-cn, fr, pl, ...] 设置默认的语言
+defaultContentLanguage = "zh-cn"
+# 网站语言, 仅在这里 CN大写
+languageCode = "zh-CN"
+# 主题
+theme = "LoveIt"
+# 网站标题
+publishDir = "docs"
+languageName = "简体中文"
+# 是否包括中日韩文字
+hasCJKLanguage = true
+
+# 作者配置
+[author]
+  name = "admin"
+  email = "admin@gmail-1.com"
+ # link = "https://www.u1s1.vip"
+
+# 菜单配置
+[menu]
+
+  [[menu.main]]
+    weight = 1
+    identifier = "categories"
+    pre = ""
+    post = ""
+    name = "所有分类"
+    url = "/categories/"
+    title = ""
+
+  [[menu.main]]
+    weight = 2
+    identifier = "posts"
+    # 你可以在名称 (允许 HTML 格式) 之前添加其他信息, 例如图标
+    pre = ""
+    # 你可以在名称 (允许 HTML 格式) 之后添加其他信息, 例如图标
+    post = ""
+    name = "文章"
+    url = "/posts/"
+    # 当你将鼠标悬停在此菜单链接上时, 将显示的标题
+    title = ""
+
+  [[menu.main]]
+    weight = 3
+    identifier = "tags"
+    pre = ""
+    post = ""
+    name = "标签"
+    url = "/tags/"
+    title = ""
+
+  [[menu.main]]
+    weight = 4
+    identifier = "about"
+    pre = ""
+    post = ""
+    name = "关于"
+    url = "/about/"
+    title = ""
+
+# Hugo 解析文档的配置
+[markup]
+  # 语法高亮设置 (https://gohugo.io/content-management/syntax-highlighting)
+  [markup.highlight]
+    # false 是必要的设置 (https://github.com/dillonzq/LoveIt/issues/158)
+    noClasses = false
+
+
+
+
+
+
+

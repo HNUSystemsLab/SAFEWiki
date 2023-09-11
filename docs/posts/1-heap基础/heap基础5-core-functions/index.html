@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>heap基础 5/6: Core Functions核心函数  - 安全维基</title><meta name="Description" content="分享安全技术"><meta property="og:title" content="heap基础 5/6: Core Functions核心函数 " />
+<meta property="og:description" content="核心函数 说明： void *_init_malloc(mstate av,size_t bytes) 1.更新bytes以处理对齐等。 2.检查av是否为NULL。 3.在没有可用分区的情况下（av为NULL），调用sysm" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
+<meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="heap基础 5/6: Core Functions核心函数 "/>
+<meta name="twitter:description" content="核心函数 说明： void *_init_malloc(mstate av,size_t bytes) 1.更新bytes以处理对齐等。 2.检查av是否为NULL。 3.在没有可用分区的情况下（av为NULL），调用sysm"/>
+<meta name="application-name" content="湖南大学安全Wiki">
+<meta name="apple-mobile-web-app-title" content="湖南大学安全Wiki"><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="../../../favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" /><link rel="prev" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/01-heap%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5_v3.0/" /><link rel="next" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css"></noscript><link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "heap基础 5/6: Core Functions核心函数 ",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "\/posts\/1-heap%E5%9F%BA%E7%A1%80\/heap%E5%9F%BA%E7%A1%805-core-functions\/"
+        },"genre": "posts","keywords": "heap基础","wordcount":  4509 ,
+        "url": "\/posts\/1-heap%E5%9F%BA%E7%A1%80\/heap%E5%9F%BA%E7%A1%805-core-functions\/","datePublished": "2023-02-05T15:36:08+08:00","dateModified": "2023-02-05T15:36:08+08:00","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "admin"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('auto' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'auto' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="../../../categories/"> 所有分类 </a><a class="menu-item" href="../../../posts/"> 文章 </a><a class="menu-item" href="../../../tags/"> 标签 </a><a class="menu-item" href="../../../about/"> 关于 </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="../../../categories/" title="">所有分类</a><a class="menu-item" href="../../../posts/" title="">文章</a><a class="menu-item" href="../../../tags/" title="">标签</a><a class="menu-item" href="../../../about/" title="">关于</a><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">目录</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">heap基础 5/6: Core Functions核心函数 </h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="../../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-category">收录于 <a href="../../../categories/heap%E5%9F%BA%E7%A1%80/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap基础</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2023-02-05">2023-02-05</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 4509 字&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;预计阅读 9 分钟&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>目录</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#void-_init_mallocmstate-avsize_t-bytes">void *_init_malloc(mstate av,size_t bytes)</a></li>
+    <li><a href="#_libc_mallocsize_t-bytes">_libc_malloc(size_t bytes)</a></li>
+    <li><a href="#_init_freemstate-avmchunkptr-pint-have_lock">_init_free(mstate av,mchunkptr p,int have_lock)</a></li>
+    <li><a href="#_libc_freevoid-mem">_libc_free(void *mem)</a></li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><h1 id="center核心函数center"><!-- raw HTML omitted -->核心函数<!-- raw HTML omitted --></h1>
+<p>说明：</p>
+<h2 id="void-_init_mallocmstate-avsize_t-bytes">void *_init_malloc(mstate av,size_t bytes)</h2>
+<p>1.更新bytes以处理对齐等。
+<br>
+2.检查<code>av</code>是否为NULL。
+<br>
+3.在没有可用分区的情况下（<code>av</code>为NULL），调用<code>sysmalloc</code>来使用mmap获取chunk。如果成功，将调用<code>alloc_perturb</code>，然后返回指针。
+<br>
+4.</p>
+<ul>
+<li>
+<p>A. 如果要申请的chunk大小在fast bin范围内，则：
+<br>
+① 获取fast bin数组的索引，从而根据请求大小访问合适的bin。
+<br>
+② 删除该bin中的第一个chunk并让<code>victim</code>指向它。
+<br>
+③ 如果<code>victim</code>为NULL，则转到情况B.
+<br>
+④ 如果<code>victim</code>不为NULL，检查chunk的大小以确保它属于该特定的bin。否则会抛出错误（<code>&quot;malloc():memory corruption(fast)&quot;</code>）
+<br>
+⑤ 调用<code>alloc_perturb</code>然后返回指针。</p>
+</li>
+<li>
+<p>B. 如果大小落在small bin范围内：
+<br>
+① 获取small bin数组的索引，以根据请求大小访问合适的bin。
+<br>
+② 如果这个bin中没有chunk（通过比较指针<code>bin</code>和<code>bin-&gt;bk</code>来检查），则继续执行情况C。
+<br>
+③ <code>victim</code>等于<code>bin-&gt;bk</code>(<code>bin</code>中的最后一个chunk)。如果它为NULL（在此期间发生初始化），则调用<code>malloc_consolidate</code>并跳过检查不同bin的完整步骤。
+<br>
+④ 否则，当<code>victim</code>不为NULL时，检查<code>victim-&gt;bk-&gt;fd</code>和<code>victim</code>是否相等。如果它们不相等，则抛出错误<code>&quot;malloc(): smallbin double linked list corrupted&quot;</code>.
+<br>
+⑤ 为<code>victim</code>的下一个chunk（在内存中，而不是在双向链表中）设置<code>PREV_INSUE</code>位。
+<br>
+⑥ 从bin列表中删除这个chunk。
+<br>
+⑦ 根据<code>av</code>为这个chunk设置适当的分区位。
+<br>
+⑧ 调用<code>alloc_perturb</code>然后返回指针。</p>
+</li>
+<li>
+<p>C. 如果大小不在smallbin范围内：
+<br>
+① 获取largebin数组的索引以根据请求大小访问合适的bin。
+<br>
+② 看<code>av</code>有没有fastchunks。这是通过检查<code>av-&gt;flags</code>中的<code>FASTCHUNKS_BIT</code>来完成的。如果是这样，调用<code>av</code>上的<code>malloc_consolidate</code>.</p>
+</li>
+<li>
+<p>如果还没有返回任何指针，则意味着以下一种或多种情况：
+<br>
+① 大小落在fast bin范围但没有可用的fastchunk。
+<br>
+② 大小落在small bin范围但没有可用的smallchunk（在初始化期间调用malloc_consolidate）。
+<br>
+③ 大小落在large bin范围内。</p>
+</li>
+<li>
+<p>接下来，检查unsorted chunks并遍历chunks将其放入bins中。这是唯一将chunks放入bins中的地方。从&rsquo;TAIL&rsquo;中迭代unsorted bin。
+<br>
+① <code>victim</code>指向正在处理的当前chunk。
+<br>
+② 检查<code>victim</code>的chunk大小是否在最小(<code>2*SIZE SZ</code>)和最大(<code>av-&gt;system_mem</code>)范围内。否则抛出错误（<code>&quot;malloc(): memory corruption&quot;</code>）
+<br>
+③ 如果请求的chunk大小在small bin范围内且<code>victim</code>是最后一个剩余chunk和unsorted bin中的唯一一个chunk，以及此chunks大小 &gt;= 请求的chunk，则将chunk分为两个chunks：
+a. 第一个chunk匹配请求的大小并返回。
+b. 剩下的chunk成为新的最后一个剩余chunk，并被插回到unsorted bin中。
+Ⅰ 为两个chunks设置合适的<code>chunk_size</code>和<code>chunk_prev_size</code>字段.
+Ⅱ 调用<code>alloc_perturb</code>后返回第一个chunk。
+<br>
+④ 如果上述条件为假，则控制到达此处。从unsorted bin中移除<code>victim</code>。如果<code>victim</code>的大小与请求的大小完全匹配，则在调用<code>alloc_perturb</code>后返回此chunk。
+<br>
+⑤ 如果<code>victim</code>的大小落在smallbin范围内，则将chunk添加到相应small bin的HEAD中。
+<br>
+⑥ 否则，在保持排序顺序的同时，插入到合适的large bin：
+Ⅰ 首先检查最后一个chunk（最小）。如果<code>victim</code>的大小小于最后一个chunk，将其插入到最后一个chunk。
+Ⅱ 否则，循环查找大小 &gt;= <code>victim</code>的大小的一个chunk。如果大小完全相同，则始终插入第二个位置。
+<br>
+⑦ 重复整个步骤最多10000次，或者直到unsorted bin中的所有chunks都用完为止。</p>
+</li>
+<li>
+<p>在检查完unsorted chunks之后，检查请求的大小是否落在small bin范围内，如果不在，则检查large bin。
+<br>
+① 获取large bin数组的索引，以根据请求大小访问适当的bin。
+<br>
+② 如果最大的chunk（bin中的第一个chunk）的大小大于请求的大小：
+Ⅰ 从&quot;TAIL&quot;中迭代以找到最小大小的&gt;=请求大小的chunk(<code>victim</code>)。
+Ⅱ 调用<code>unlink</code>从bin中删除<code>victim</code>chunk。
+Ⅲ 计算<code>victim</code>chunk的<code>remainder_size</code>（即<code>victim</code>chunk大小-请求的大小）。
+Ⅳ 如果此<code>remainder_size</code> &gt;= MINSIZE（包括headers在内的最小chunk大小），则将chunk分为两个chunks。否则，将返回整个<code>victim</code>chunk。将剩余的chunk插入unsorted bin（在&quot;TAIL&quot;端）。检查在unsorted bin中是否存在<code>unsorted_chunks(av)-&gt;fd-&gt;bk == unsorted_chunks(av)</code>。否则抛出错误(<code>&quot;malloc(): corrupted unsorted chunks&quot;</code>)
+Ⅴ 调用<code>alloc_perturb</code>后返回<code>victim</code>chunk。</p>
+</li>
+<li>
+<p>到目前为止，我们已经检查了unsorted bins以及相应的fast bins，small bins或large bins。注意：使用所请求chunk的确切大小检查了单个bin（fast bins或small bins）。重复以下步骤，直到所有bins都用完为止：
+<br>
+① 递增bin数组的索引，以检查下一个bin。
+<br>
+② 使用<code>av-binmap</code>的map跳过空的bins。
+<br>
+③ <code>victim</code>指向当前bin的&rsquo;TAIL'。
+<br>
+④ 使用binmap可以确保如果跳过了一个bin（在②中），它肯定是空的。然而，binmap不能确保跳过了所有空的bins。检查<code>victim</code>是否为空。如果为空，再次跳过bin并重复上述过程，直到我们到达非空bin。
+<br>
+⑤ 将chunk（<code>victim</code>指向非空bin的最后一个chunk）分成两个chunks。将剩余的chunk插入到unsorted bin（&lsquo;TAIL&rsquo;端）。在unsorted bin中检查<code>unsorted_chunks(av)-&gt;fd-&gt;bk == unsorted_chunks(av)</code>是否成立。如果不成立会抛出错误(<code>&quot;malloc(): corrupted unsorted chunks 2&quot;</code>)
+<br>
+⑥ 调用<code>alloc_perturb</code>后返回<code>victim</code>chunk。</p>
+</li>
+<li>
+<p>如果仍未找到空的bin，将使用top chunk来为请求提供服务：
+<br>
+① <code>victim</code>指向<code>av-&gt;top</code>。
+<br>
+② 如果top chunk的大小 &gt;= &lsquo;请求的大小&rsquo;+MINSIZE，将它分为两个chunks。在这种情况下，剩余chunk将成为新的top chunk，另一个chunk在调用<code>alloc_perturb</code>后返回给用户。
+<br>
+③ 看<code>av</code>有没有fastchunks。这是通过检查<code>av-&gt;flags</code>中的<code>FASTCHUNKS_BIT</code>来完成的。如果有，调用<code>av</code>上的<code>malloc_consolidate</code>。返回到<strong>步骤1.6</strong>（检查unsorted bin）
+<br>
+④ 如果<code>av</code>没有fastchunk，则调用<code>sysmalloc</code>，并返回调用<code>alloc_perturb</code>后得到的指针。</p>
+</li>
+</ul>
+<h2 id="_libc_mallocsize_t-bytes">_libc_malloc(size_t bytes)</h2>
+<p>1.调用<code>arena_get</code>获取mastate指针。
+<br>
+2.使用分区指针和大小调用<code>_init_malloc</code>.
+<br>
+3.解锁分区。
+<br>
+4.在返回指向chunk的指针之前，以下条件之一应该为真：
+Ⅰ 返回指针为NULL
+Ⅱ chunk是MMAPPED
+Ⅲ chunk的分区与①中找到的相同。</p>
+<h2 id="_init_freemstate-avmchunkptr-pint-have_lock">_init_free(mstate av,mchunkptr p,int have_lock)</h2>
+<ul>
+<li>
+<p>检查在内存中p是否在p + chunksize(p) 之前（以避免wrapping）。否则会抛出错误(<code>&quot;free():invalid pointer&quot;</code>).</p>
+</li>
+<li>
+<p>检查chunk的大小是否至少为MINSIZE或MALLOC_ALIGNMENT的倍数。否则会抛出错误（<code>&quot;free(): invalid size&quot;</code>）</p>
+</li>
+<li>
+<p>如果chunk的大小在fast bin列表中：
+Ⅰ 检查下一个chunk的大小是否在最小和最大大小（<code>av-&gt;system_mem</code>）之间，否则抛出错误（<code>&quot;free(): invalid next size (fast)&quot;</code>）.
+Ⅱ 调用<code>free_perturb</code>处理chunk.
+Ⅲ 为<code>av</code>设置FASTCHUNKS_BIT.
+Ⅳ 根据chunk的大小获取fast bin数组的索引。
+Ⅴ 检查bin的顶部是否不是我们要添加的chunk。否则，抛出错误（<code>&quot;double free or corruption (fasttop)&quot;</code>）
+Ⅵ 检查顶部的fast bin chunk的大小是否与我们添加的chunk相同。否则，抛出错误（<code>&quot;invalid fastbin entry (free)&quot;</code>）
+Ⅶ 将chunk插入fast bin列表的顶部并返回。</p>
+</li>
+<li>
+<p>如果chunk没有mmapped：
+Ⅰ 检查该chunk是否是top chunk。如果是，则抛出错误(<code>&quot;double free or corruption (top)&quot;</code>)。
+Ⅱ 检查下一个chunk（按内存）是否在分区的边界内。如果不是，则抛出错误(<code>&quot;double free or corruption (out)&quot;</code>)。
+Ⅲ 检查下一个chunk（按内存）的先前使用位是否被标记。如果不是，则抛出错误(<code>&quot;double free or corruption (!prev)&quot;</code>).
+Ⅳ 检查下一个chunk的大小在最小和最大大小之间（<code>av-&gt;system_mem</code>）.如果不在，则抛出错误(``).
+Ⅴ 调用<code>free_perturb</code>处理chunk。
+Ⅵ 如果前一个chunk（按内存）未被使用，就调用<code>unlink</code>处理前一个chunk.
+Ⅶ 如果下一个chunk（按内存）不是top chunk：
+如果下一个chunk未被使用，则调用<code>unlink</code>处理下一个chunk。将chunk和上一个chunk、下一个chunk（按内存）（如果有被释放的chunk也一起）合并，并将其插入到unsorted bin的头部。在插入之前，检查是否存在<code>unsorted_chunks(av)-&gt;fd-&gt;bk == unsorted_chunks(av)</code>。如果否，则抛出错误(<code>&quot;free(): corrupted unsorted chunks&quot;</code>)
+Ⅷ 如果下一个chunk（按内存）是top chunk，则将这些chunks适当地合并到单个top chunk中。</p>
+</li>
+<li>
+<p>如果chunk是mmapped，则调用<code>munmap_chunk</code>.</p>
+</li>
+</ul>
+<h2 id="_libc_freevoid-mem">_libc_free(void *mem)</h2>
+<ol>
+<li>如果<code>mem</code>为NULL则直接返回。</li>
+<li>如果相应的chunk是mmapped，在brk/mmap阈值需要动态调整时调用<code>munmap_chunk</code>.</li>
+<li>获取相应chunk的分区指针。</li>
+<li>调用<code>_init_free</code>.</li>
+</ol>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>更新于 2023-02-05</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="分享到 Twitter" data-sharer="twitter" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" data-title="heap基础 5/6: Core Functions核心函数 " data-hashtags="heap基础"><i class="fab fa-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Facebook" data-sharer="facebook" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" data-hashtag="heap基础"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Hacker News" data-sharer="hackernews" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" data-title="heap基础 5/6: Core Functions核心函数 "><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Line" data-sharer="line" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" data-title="heap基础 5/6: Core Functions核心函数 "><i data-svg-src="https://cdn.jsdelivr.net/npm/simple-icons@7.3.0/icons/line.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 微博" data-sharer="weibo" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" data-title="heap基础 5/6: Core Functions核心函数 "><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../../tags/heap%E5%9F%BA%E7%A1%80/">heap基础</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">返回</a></span>&nbsp;|&nbsp;<span><a href="../../../">主页</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"><a href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/01-heap%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5_v3.0/" class="prev" rel="prev" title="heap基础 new "><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>heap基础 new </a>
+            <a href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" class="next" rel="next" title="heap基础 4/6: Internal Functions内部函数 ">heap基础 4/6: Internal Functions内部函数 <i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="回到顶部">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="查看评论">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sharer.js@0.5.1/sharer.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"复制到剪贴板","maxShownLines":50},"comment":{}};</script><script type="text/javascript" src="../../../js/theme.min.js"></script></body>
+</html>

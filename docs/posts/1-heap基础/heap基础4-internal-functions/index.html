@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>heap基础 4/6: Internal Functions内部函数  - 安全维基</title><meta name="Description" content="分享安全技术"><meta property="og:title" content="heap基础 4/6: Internal Functions内部函数 " />
+<meta property="og:description" content="Internal Function内部函数 这是内部使用的一些常用函数的列表。要注意的是，某些函数实际上是使用 #define 指令定义的。因此，对调用参数的更改实际上在调用" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
+<meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="heap基础 4/6: Internal Functions内部函数 "/>
+<meta name="twitter:description" content="Internal Function内部函数 这是内部使用的一些常用函数的列表。要注意的是，某些函数实际上是使用 #define 指令定义的。因此，对调用参数的更改实际上在调用"/>
+<meta name="application-name" content="湖南大学安全Wiki">
+<meta name="apple-mobile-web-app-title" content="湖南大学安全Wiki"><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="../../../favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" /><link rel="prev" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" /><link rel="next" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css"></noscript><link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "heap基础 4/6: Internal Functions内部函数 ",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "\/posts\/1-heap%E5%9F%BA%E7%A1%80\/heap%E5%9F%BA%E7%A1%804-internal-functions\/"
+        },"genre": "posts","keywords": "heap基础","wordcount":  1305 ,
+        "url": "\/posts\/1-heap%E5%9F%BA%E7%A1%80\/heap%E5%9F%BA%E7%A1%804-internal-functions\/","datePublished": "2023-02-05T15:36:08+08:00","dateModified": "2023-02-05T15:36:08+08:00","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "admin"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('auto' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'auto' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="../../../categories/"> 所有分类 </a><a class="menu-item" href="../../../posts/"> 文章 </a><a class="menu-item" href="../../../tags/"> 标签 </a><a class="menu-item" href="../../../about/"> 关于 </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="../../../categories/" title="">所有分类</a><a class="menu-item" href="../../../posts/" title="">文章</a><a class="menu-item" href="../../../tags/" title="">标签</a><a class="menu-item" href="../../../about/" title="">关于</a><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">目录</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">heap基础 4/6: Internal Functions内部函数 </h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="../../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-category">收录于 <a href="../../../categories/heap%E5%9F%BA%E7%A1%80/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap基础</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2023-02-05">2023-02-05</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 1305 字&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;预计阅读 3 分钟&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>目录</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#internal-function内部函数">Internal Function内部函数</a>
+      <ul>
+        <li><a href="#arena_get-ar_ptr-size">arena_get (ar_ptr, size)</a></li>
+        <li><a href="#sysmalloc-todo">sysmalloc [TODO]</a></li>
+        <li><a href="#void-alloc_perturb-char-p-size_t-n">void alloc_perturb (char *p, size_t n)</a></li>
+        <li><a href="#void-free_perturb-char-p-size_t-n">void free_perturb (char *p, size_t n)</a></li>
+        <li><a href="#void-malloc_init_state-mstate-av">void malloc_init_state (mstate av)</a></li>
+        <li><a href="#unlinkav-p-bk-fd">unlink(AV, P, BK, FD)</a></li>
+        <li><a href="#void-malloc_consolidatemstate-av">void malloc_consolidate(mstate av)</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><h2 id="internal-function内部函数">Internal Function内部函数</h2>
+<p>这是内部使用的一些常用函数的列表。要注意的是，某些函数实际上是使用 #define 指令定义的。因此，对调用参数的更改实际上在调用操作之后会保留。同时，假定没有设置MALLOC_DEBUG。</p>
+<h3 id="arena_get-ar_ptr-size">arena_get (ar_ptr, size)</h3>
+<p>首先获取一块区域然后锁住相对应的互斥锁，ar_ptr指针指向相应的区域，size参数只是表明要占用多少内存。</p>
+<h3 id="sysmalloc-todo">sysmalloc [TODO]</h3>
+<p>sysmalloc需要系统用malloc函数分配更多的内存。在使用的时候假设av-&gt;top的空间并不够请求nb字节，因此需要延长或者替换av-&gt;top.</p>
+<h3 id="void-alloc_perturb-char-p-size_t-n">void alloc_perturb (char *p, size_t n)</h3>
+<p>如果 perturb_byte（使用 M_PERTURB 的 malloc 的可调参数）不为零（默认情况下为 0），则修改 p 指向的 n 个字节的内容，使其与perturb_byte ^ 0xff相等。</p>
+<h3 id="void-free_perturb-char-p-size_t-n">void free_perturb (char *p, size_t n)</h3>
+<p>如果 perturb_byte（使用 M_PERTURB 的 malloc 的可调参数）不为零（默认情况下为 0），则修改 p 指向的 n 个字节的内容，使其与 perturb_byte相等。</p>
+<h3 id="void-malloc_init_state-mstate-av">void malloc_init_state (mstate av)</h3>
+<p>初始化malloc_state结构。这仅从内部调用malloc_consolidate函数（malloc_consolidate需要在相同环境被调用）它从不在 malloc _ merge之外直接调用，因为一些编译器试图在所有调用点对他进行内联操作，反而造成了负优化的后果。（虽然将它内联在malloc_consolidate中很棒就是了）
+1.对于不是fastbin的bins来说，需要为每个bin创建一个空循环链表
+2.为av 设置FASTCHUNKS_BIT的flag参数
+3.把av-&gt;top初始化为第一个未经过排序的chunk</p>
+<h3 id="unlinkav-p-bk-fd">unlink(AV, P, BK, FD)</h3>
+<p>定义一个宏指令从而从bin中删除一个chunk
+1.检查chunk的大小是否和下一个chunk里之前设置的大小相等，否则的话将显示&quot;corrupted size vs. prev_size&quot;错误
+2.检查P-&gt;fd-&gt;bk是否和P相等和P-&gt;bk-&gt;fd是否和P相等，否则的话将显示&quot;corrupted double-linked list&quot;错误
+3.调整列表中的相邻chunk的前后指针以便删除
+1.设置P-&gt;fd-&gt;bk = P-&gt;bk
+2.设置P-&gt;bk-&gt;fd = P-&gt;fd</p>
+<h3 id="void-malloc_consolidatemstate-av">void malloc_consolidate(mstate av)</h3>
+<p>free函数的特殊版本。
+1.在av未被初始化的条件下检查global_max_fast是否为0，如果为 0，则以 av 作为参数调用 malloc_init_state 并返回。
+2. 如果global_max_fast不为0，清除 av 的FASTCHUNKS_BIT flag。
+3. 从第一个索引迭代 fastbin 数组到最后一个索引：
+1）锁住当前的fastbin chunk 并且如果它不是空的话便继续。
+2）如果未使用上一个内存块，调用上一个块上的unlink函数
+3）如果下一个内存块不是在最顶部：
+1））如果下一个内存块没有被使用，则为下一个内存块调用unlink函数
+2））如果其中任意一个内存块是空的话，则将上下内存块合并，然后将合并之后的内存块放到为排序的bin的头部
+4）如果下一个内存块在顶部，把所有在顶部空的内存块合并为一个内存块
+注意：使用PREV_IN_USE来检查该内存块是否被使用，这样的话其他的fastbin chunk就不会被标志为空闲。</p>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>更新于 2023-02-05</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="分享到 Twitter" data-sharer="twitter" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" data-title="heap基础 4/6: Internal Functions内部函数 " data-hashtags="heap基础"><i class="fab fa-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Facebook" data-sharer="facebook" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" data-hashtag="heap基础"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Hacker News" data-sharer="hackernews" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" data-title="heap基础 4/6: Internal Functions内部函数 "><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Line" data-sharer="line" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" data-title="heap基础 4/6: Internal Functions内部函数 "><i data-svg-src="https://cdn.jsdelivr.net/npm/simple-icons@7.3.0/icons/line.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 微博" data-sharer="weibo" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" data-title="heap基础 4/6: Internal Functions内部函数 "><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../../tags/heap%E5%9F%BA%E7%A1%80/">heap基础</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">返回</a></span>&nbsp;|&nbsp;<span><a href="../../../">主页</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"><a href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" class="prev" rel="prev" title="heap基础 5/6: Core Functions核心函数 "><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>heap基础 5/6: Core Functions核心函数 </a>
+            <a href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" class="next" rel="next" title="heap基础 3/6: Bins 和 Chunks ">heap基础 3/6: Bins 和 Chunks <i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="回到顶部">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="查看评论">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sharer.js@0.5.1/sharer.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"复制到剪贴板","maxShownLines":50},"comment":{}};</script><script type="text/javascript" src="../../../js/theme.min.js"></script></body>
+</html>

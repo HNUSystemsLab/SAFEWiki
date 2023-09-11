@@ -1,0 +1,88 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>所有文章 - 安全维基</title>
+        <link>/posts/</link>
+        <description>所有文章 | 安全维基</description>
+        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><managingEditor>admin@gmail-1.com (admin)</managingEditor>
+            <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate><atom:link href="/posts/" rel="self" type="application/rss+xml" /><item>
+    <title>CVE: 2022-0847 The Dirty Pipe Vulnerability</title>
+    <link>/posts/5-cve/cve-2022-0847-the-dirty-pipe-vulnerability/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/5-cve/cve-2022-0847-the-dirty-pipe-vulnerability/</guid>
+    <description><![CDATA[CVE-2022-0847: The Dirty Pipe Vulnerability CVE-2022-0847: The Dirty Pipe Vulnerability 1 漏洞描述 2 触发原因 2.1 页面缓存Page Cache 2.2 管道pipe 2.3 splice()到copy_page_to_iter_pipe(]]></description>
+</item>
+<item>
+    <title>heap利用 1/9: First Fit</title>
+    <link>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A81-first-fit/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A81-first-fit/</guid>
+    <description><![CDATA[first-fit 是一个glibc堆管理机制。任何一个chunk（fast chunk除外）被free后都会被插入到unsorted bin链表的头部。当请求一]]></description>
+</item>
+<item>
+    <title>heap利用 2/9: Double Free</title>
+    <link>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A82-double-free/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A82-double-free/</guid>
+    <description><![CDATA[double free指的是多次释放资源可能会导致内存泄漏，造成分配器数据结构的损坏，进而被攻击者利用。在下面的示例程序中，一个fastbin chunk]]></description>
+</item>
+<item>
+    <title>heap利用 3/9: Forging Chunks</title>
+    <link>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/</guid>
+    <description><![CDATA[chunk被free后，会被插入到一个bin链表中，但是chunk对应的指针在程序中仍然可用。如果攻击者能够控制此指针，那么它就可以修改bi]]></description>
+</item>
+<item>
+    <title>heap利用 4/9: Unlink Exploit</title>
+    <link>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A84-unlink-exploit/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A84-unlink-exploit/</guid>
+    <description><![CDATA[unlink exploit曾经是一种很常见的攻击，但是后来unlink MACRO中添加了两项能够抵御该类攻击的安全检查(&ldquo;corrupte]]></description>
+</item>
+<item>
+    <title>heap利用 5/9: Shrinking Free Chunks</title>
+    <link>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/</guid>
+    <description><![CDATA[“Glibc Adventures: The Forgotten Chunk”中描述了Shrinking Free Chunks攻击，其因利用了单字节堆溢出（通常由于 &lsquo;off by one&rsquo; 而被发现。这种攻击的目标是]]></description>
+</item>
+<item>
+    <title>heap利用 6/9: House of Spirit</title>
+    <link>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A86-house-of-spirit/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A86-house-of-spirit/</guid>
+    <description><![CDATA[1. 概述 House of Spirit 与其他攻击稍有不同，表现为攻击者是在chunk被free之前覆盖现有指针。具体方法是：攻击者创建一个 fake chunk，它可以驻留在内]]></description>
+</item>
+<item>
+    <title>heap利用 7/9: House of Lore</title>
+    <link>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A87-house-of-lore/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A87-house-of-lore/</guid>
+    <description><![CDATA[这种攻击基本上是针对small bins和large bins伪造chunk。然而，由于在2007年左右增强了对large bins的保护(引入了]]></description>
+</item>
+<item>
+    <title>heap利用 8/9: House of Force</title>
+    <link>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A88-house-of-force/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A88-house-of-force/</guid>
+    <description><![CDATA[本攻击与 “House of Lore” 类似，重点是利用 malloc 返回任意指针。Forging chunks攻击主要是针对fastbins，而 “House of L]]></description>
+</item>
+<item>
+    <title>heap利用 9/9: House of Einherjar</title>
+    <link>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A89-house-of-einherjar/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A89-house-of-einherjar/</guid>
+    <description><![CDATA[1. 概述 这个house不是&quot;The Malloc Maleficarum&quot;的一部分。这种堆利用技术由Hiroki Matsukuma于20]]></description>
+</item>
+</channel>
+</rss>

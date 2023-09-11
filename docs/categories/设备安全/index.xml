@@ -1,0 +1,24 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>设备安全 - 分类 - 安全维基</title>
+        <link>/categories/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/</link>
+        <description>设备安全 - 分类 - 安全维基</description>
+        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><managingEditor>admin@gmail-1.com (admin)</managingEditor>
+            <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate><atom:link href="/categories/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/" rel="self" type="application/rss+xml" /><item>
+    <title>设备安全: BadUsb</title>
+    <link>/posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-badusb/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-badusb/</guid>
+    <description><![CDATA[##一种基于USB设备的安全攻击———BadUSB [toc] 1 背景与原理 USB作为一种即插即用的工具，在给人们提供便利的同时，也带来了很多安全威胁。]]></description>
+</item>
+<item>
+    <title>设备安全: 打印机</title>
+    <link>/posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/</guid>
+    <description><![CDATA[打印机入侵 打印机入侵 1 背景介绍 2 相关知识 2.1 打印机的基本工作原理 2.1.1 接收文件 2.1.2 打印文件 2.2 打印机的攻击类型 2.2.1 拒绝服务攻击 2.2.2 权限提升 2.2.3 打印作业访问 2.2.4]]></description>
+</item>
+</channel>
+</rss>

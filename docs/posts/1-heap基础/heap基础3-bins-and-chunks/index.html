@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>heap基础 3/6: Bins 和 Chunks  - 安全维基</title><meta name="Description" content="分享安全技术"><meta property="og:title" content="heap基础 3/6: Bins 和 Chunks " />
+<meta property="og:description" content="Bins和Chunks Bin 是由free chunk（未分配）组成的一个列表（双向或单向链表）。bins 根据其包含的块的大小被分为以下4类： Fast bin Unsorted" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
+<meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="heap基础 3/6: Bins 和 Chunks "/>
+<meta name="twitter:description" content="Bins和Chunks Bin 是由free chunk（未分配）组成的一个列表（双向或单向链表）。bins 根据其包含的块的大小被分为以下4类： Fast bin Unsorted"/>
+<meta name="application-name" content="湖南大学安全Wiki">
+<meta name="apple-mobile-web-app-title" content="湖南大学安全Wiki"><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="../../../favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" /><link rel="prev" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" /><link rel="next" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%802-malloc_state/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css"></noscript><link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "heap基础 3/6: Bins 和 Chunks ",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "\/posts\/1-heap%E5%9F%BA%E7%A1%80\/heap%E5%9F%BA%E7%A1%803-bins-and-chunks\/"
+        },"genre": "posts","keywords": "heap基础","wordcount":  1395 ,
+        "url": "\/posts\/1-heap%E5%9F%BA%E7%A1%80\/heap%E5%9F%BA%E7%A1%803-bins-and-chunks\/","datePublished": "2023-02-05T15:36:08+08:00","dateModified": "2023-02-05T15:36:08+08:00","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "admin"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('auto' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'auto' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="../../../categories/"> 所有分类 </a><a class="menu-item" href="../../../posts/"> 文章 </a><a class="menu-item" href="../../../tags/"> 标签 </a><a class="menu-item" href="../../../about/"> 关于 </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="../../../categories/" title="">所有分类</a><a class="menu-item" href="../../../posts/" title="">文章</a><a class="menu-item" href="../../../tags/" title="">标签</a><a class="menu-item" href="../../../about/" title="">关于</a><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">目录</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">heap基础 3/6: Bins 和 Chunks </h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="../../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-category">收录于 <a href="../../../categories/heap%E5%9F%BA%E7%A1%80/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap基础</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2023-02-05">2023-02-05</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 1395 字&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;预计阅读 3 分钟&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>目录</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#bins和chunks">Bins和Chunks</a>
+      <ul>
+        <li><a href="#fast-bins">Fast bins</a></li>
+        <li><a href="#unsorted-bin">Unsorted bin</a></li>
+        <li><a href="#small-bins">Small bins</a></li>
+        <li><a href="#large-bins">Large bins</a></li>
+        <li><a href="#top-chunk">Top chunk</a></li>
+        <li><a href="#last-remainder-chunk">Last remainder chunk</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><h2 id="bins和chunks">Bins和Chunks</h2>
+<p>Bin 是由free chunk（未分配）组成的一个列表（双向或单向链表）。bins 根据其包含的块的大小被分为以下4类：</p>
+<ol>
+<li>Fast bin</li>
+<li>Unsorted bin</li>
+<li>Small bin</li>
+<li>Large bin</li>
+</ol>
+<p>Fast bins 使用以下方法声明：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="o">*</span><span class="n">mfastbinptr</span><span class="p">;</span>
+
+<span class="n">mfastbinptr</span> <span class="n">fastbinsY</span><span class="p">[];</span> <span class="c1">// Array of pointers to chunks
+</span></code></pre></div><p>Unsorted、small和large bins使用以下方式声明：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="o">*</span><span class="n">mchunkptr</span><span class="p">;</span> 
+
+<span class="n">mchunkptr</span> <span class="n">bins</span><span class="p">[];</span> <span class="c1">// Array of pointers to chunks
+</span></code></pre></div><p>最初，在初始化过程中，small和large bin为空。每个bin由 bin 数组中的两个值表示，第一个值是指向“HEAD”的指针，第二个值是指向“TAIL”的指针。对于fast bin（单向链表），第二个值会设为 <code>NULL</code>。</p>
+<h3 id="fast-bins">Fast bins</h3>
+<p>共有10个fast bin，每一个bin都是一个单向链表，对链表的添加和删除操作都是从链表头进行，遵循LIFO算法。</p>
+<p>每个bin中的chunk大小都是相同的。10 个bin中包含的chunk的大小有：16、24、32、40、48、56、64、72、80 和 88字节，此处提到的大小也包括元数据。在指针大小为 4 个字节的平台上，将会提供不超过4个字节的空间来存储chunk。该chunk的<code>prev_size</code>和<code>size</code>字段将保存已分配区块的元数据。下一个连续区块<code>prev_size</code>将保存用户数据。</p>
+<p>两个连续的空闲fast chunk不会合并在一起。</p>
+<h3 id="unsorted-bin">Unsorted bin</h3>
+<p>只有1个unsorted bin。在大型chunk或者小型chunk释放后，会进入这个bin当中。此 bin 的主要用途是充当缓存层（某种）以加快分配和取消分配请求的速度。</p>
+<h3 id="small-bins">Small bins</h3>
+<p>共有62个small bin，small bins的块就叫做small chunks。就内存的分配和释放速度而言，small bins的速度要比large bins快，但比fast bins慢。每一个small bin都是双向链表，采用FIFO（先入先出）算法，插入操作发生在“头部”，而删除发生在“尾部”（以FIFO方式）。</p>
+<p>与fast bins一样，每个small bin都有相同大小的chunk。62 个箱的大小为：16、24、&hellip;、504 字节，以8字节一次递进。</p>
+<p>在释放时，空闲的small chunk可能会合并在一起，然后最终进入unsorted bin。</p>
+<h3 id="large-bins">Large bins</h3>
+<p>共有63个large bin，每一个large bin都是双向链表。特定large bin中chunk的大小各不相同，其中chunk根据其大小降序排序（即最大的块在“HEAD”和最小的块在“TAIL”）。插入和删除操作可以发生在列表中的任何位置。</p>
+<p>前 32 个bin中包含的chunk相距64个字节：</p>
+<p>第一个bin：512-568字节<br>
+第二个bin：576-632字节<br>
+&hellip;</p>
+<p>总得来说就是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="n">No</span><span class="p">.</span> <span class="n">of</span> <span class="n">Bins</span> <span class="n">Spacing</span> <span class="n">between</span> <span class="n">bins</span>
+
+<span class="mi">64</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>       <span class="mi">8</span>  <span class="p">[</span> <span class="n">Small</span> <span class="n">bins</span> <span class="p">]</span>
+<span class="mi">32</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>      <span class="mi">64</span>  <span class="p">[</span> <span class="n">Large</span> <span class="n">bins</span> <span class="p">]</span>
+<span class="mi">16</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>     <span class="mi">512</span>  <span class="p">[</span> <span class="n">Large</span> <span class="n">bins</span> <span class="p">]</span>
+<span class="mi">8</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>     <span class="mi">4096</span>  <span class="p">[</span> <span class="p">...</span>        <span class="p">]</span>
+<span class="mi">4</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>    <span class="mi">32768</span>
+<span class="mi">2</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>   <span class="mi">262144</span>
+<span class="mi">1</span> <span class="n">bin</span>  <span class="n">of</span> <span class="n">size</span>  <span class="n">what</span><span class="err">&#39;</span><span class="n">s</span> <span class="n">left</span>
+</code></pre></div><p>和small chunk一样，在释放时large chunk可能会合并在一起，然后进入unsorted bin。</p>
+<blockquote>
+<p><strong>注意</strong>，有两种特殊类型的块不属于任何bin，分别是顶部块（top chunk）和最后剩余块（last remainder chunk）</p>
+</blockquote>
+<h3 id="top-chunk">Top chunk</h3>
+<p>Top chunk是位于Arena顶部的块。在为“malloc”请求提供服务时，它被用作最后的手段。可以使用 sbrk 系统调用指令来增大Top chunk的大小。Top chunk会被设置有 PREV_INUSE 标志。</p>
+<h3 id="last-remainder-chunk">Last remainder chunk</h3>
+<p>Last remainder chunk是从最后一次拆分中获得的块。有时，当较小的块不可用时，较大的块会分成两个部分，一部分返回给用户，另一部分会成为last remainder chunk。</p>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>更新于 2023-02-05</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="分享到 Twitter" data-sharer="twitter" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" data-title="heap基础 3/6: Bins 和 Chunks " data-hashtags="heap基础"><i class="fab fa-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Facebook" data-sharer="facebook" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" data-hashtag="heap基础"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Hacker News" data-sharer="hackernews" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" data-title="heap基础 3/6: Bins 和 Chunks "><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Line" data-sharer="line" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" data-title="heap基础 3/6: Bins 和 Chunks "><i data-svg-src="https://cdn.jsdelivr.net/npm/simple-icons@7.3.0/icons/line.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 微博" data-sharer="weibo" data-url="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" data-title="heap基础 3/6: Bins 和 Chunks "><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../../tags/heap%E5%9F%BA%E7%A1%80/">heap基础</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">返回</a></span>&nbsp;|&nbsp;<span><a href="../../../">主页</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"><a href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/" class="prev" rel="prev" title="heap基础 4/6: Internal Functions内部函数 "><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>heap基础 4/6: Internal Functions内部函数 </a>
+            <a href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%802-malloc_state/" class="next" rel="next" title="heap基础 2/6: malloc_state">heap基础 2/6: malloc_state<i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="回到顶部">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="查看评论">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sharer.js@0.5.1/sharer.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"复制到剪贴板","maxShownLines":50},"comment":{}};</script><script type="text/javascript" src="../../../js/theme.min.js"></script></body>
+</html>

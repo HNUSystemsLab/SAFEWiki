@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>设备安全: 打印机 - 安全维基</title><meta name="Description" content="分享安全技术"><meta property="og:title" content="设备安全: 打印机" />
+<meta property="og:description" content="打印机入侵 打印机入侵 1 背景介绍 2 相关知识 2.1 打印机的基本工作原理 2.1.1 接收文件 2.1.2 打印文件 2.2 打印机的攻击类型 2.2.1 拒绝服务攻击 2.2.2 权限提升 2.2.3 打印作业访问 2.2.4" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
+<meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="设备安全: 打印机"/>
+<meta name="twitter:description" content="打印机入侵 打印机入侵 1 背景介绍 2 相关知识 2.1 打印机的基本工作原理 2.1.1 接收文件 2.1.2 打印文件 2.2 打印机的攻击类型 2.2.1 拒绝服务攻击 2.2.2 权限提升 2.2.3 打印作业访问 2.2.4"/>
+<meta name="application-name" content="湖南大学安全Wiki">
+<meta name="apple-mobile-web-app-title" content="湖南大学安全Wiki"><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="../../../favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/" /><link rel="prev" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/02-heap%E6%93%8D%E4%BD%9C_v.0.4/" /><link rel="next" href="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-badusb/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css"></noscript><link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "设备安全: 打印机",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "\/posts\/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8\/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5\/"
+        },"genre": "posts","keywords": "设备安全","wordcount":  6487 ,
+        "url": "\/posts\/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8\/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5\/","datePublished": "2023-02-05T15:36:08+08:00","dateModified": "2023-02-05T15:36:08+08:00","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "admin"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('auto' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'auto' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="../../../categories/"> 所有分类 </a><a class="menu-item" href="../../../posts/"> 文章 </a><a class="menu-item" href="../../../tags/"> 标签 </a><a class="menu-item" href="../../../about/"> 关于 </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="../../../categories/" title="">所有分类</a><a class="menu-item" href="../../../posts/" title="">文章</a><a class="menu-item" href="../../../tags/" title="">标签</a><a class="menu-item" href="../../../about/" title="">关于</a><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">目录</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">设备安全: 打印机</h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="../../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-category">收录于 <a href="../../../categories/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>设备安全</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2023-02-05">2023-02-05</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 6487 字&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;预计阅读 13 分钟&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>目录</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#center打印机入侵"><!-- raw HTML omitted -->打印机入侵</a>
+      <ul>
+        <li><a href="#1-背景介绍">1 背景介绍</a></li>
+        <li><a href="#2-相关知识">2 相关知识</a></li>
+        <li><a href="#3-入侵实验">3 入侵实验</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><h2 id="center打印机入侵"><!-- raw HTML omitted -->打印机入侵</h2>
+<hr>
+<!-- raw HTML omitted -->
+<ul>
+<li><a href="#%e6%89%93%e5%8d%b0%e6%9c%ba%e5%85%a5%e4%be%b5" rel="">打印机入侵</a>
+<ul>
+<li><a href="#1-%e8%83%8c%e6%99%af%e4%bb%8b%e7%bb%8d" rel="">1 背景介绍</a></li>
+<li><a href="#2-%e7%9b%b8%e5%85%b3%e7%9f%a5%e8%af%86" rel="">2 相关知识</a>
+<ul>
+<li><a href="#21-%e6%89%93%e5%8d%b0%e6%9c%ba%e7%9a%84%e5%9f%ba%e6%9c%ac%e5%b7%a5%e4%bd%9c%e5%8e%9f%e7%90%86" rel="">2.1 打印机的基本工作原理</a>
+<ul>
+<li><a href="#211-%e6%8e%a5%e6%94%b6%e6%96%87%e4%bb%b6" rel="">2.1.1 接收文件</a></li>
+<li><a href="#212-%e6%89%93%e5%8d%b0%e6%96%87%e4%bb%b6" rel="">2.1.2 打印文件</a></li>
+</ul>
+</li>
+<li><a href="#22-%e6%89%93%e5%8d%b0%e6%9c%ba%e7%9a%84%e6%94%bb%e5%87%bb%e7%b1%bb%e5%9e%8b" rel="">2.2 打印机的攻击类型</a>
+<ul>
+<li><a href="#221-%e6%8b%92%e7%bb%9d%e6%9c%8d%e5%8a%a1%e6%94%bb%e5%87%bb" rel="">2.2.1 拒绝服务攻击</a></li>
+<li><a href="#222-%e6%9d%83%e9%99%90%e6%8f%90%e5%8d%87" rel="">2.2.2 权限提升</a></li>
+<li><a href="#223-%e6%89%93%e5%8d%b0%e4%bd%9c%e4%b8%9a%e8%ae%bf%e9%97%ae" rel="">2.2.3 打印作业访问</a></li>
+<li><a href="#224-%e4%bf%a1%e6%81%af%e6%b3%84%e9%9c%b2" rel="">2.2.4 信息泄露</a></li>
+<li><a href="#225-%e4%bb%a3%e7%a0%81%e6%89%a7%e8%a1%8c" rel="">2.2.5 代码执行</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#3-%e5%85%a5%e4%be%b5%e5%ae%9e%e9%aa%8c" rel="">3 入侵实验</a>
+<ul>
+<li><a href="#31-%e6%94%bb%e5%87%bb%e6%a1%86%e6%9e%b6%e5%8f%8a%e6%b5%81%e7%a8%8b" rel="">3.1 攻击框架及流程</a></li>
+<li><a href="#32-%e5%ae%9e%e6%93%8d%e9%97%ae%e9%a2%98%e6%80%bb%e7%bb%93" rel="">3.2 实操问题总结</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<!-- raw HTML omitted -->
+<hr>
+<h3 id="1-背景介绍">1 背景介绍</h3>
+<p>随着物联网概念的普及，越来越多的设备加入了物联网的大家庭之中，打印机在人们的工作和生活中都起到了不可或缺的作用。早期与打印机连接的普遍途径是通过USB接口进行连接，现在出于降低成本和提高效率的目的，一些大学和公司使用网络打印机。虽然使用打印机对人们来说几乎与使用电脑、手机等设备上网一样常见，但是人们依然缺乏对于打印机安全的重视。使用者对打印机安全的忽视以及打印机本身存在的安全漏洞让打印机的安全面临风险。据统计，每年有数以万计打印机被攻击的案例，造成了大量财产损失与信息泄露，负面影响不可小觑。提高使用者对打印机安全的重视程度，加固打印机的安全机制非常重要。本研究从网络打印机攻击者的角度出发，尝试攻击网络打印机，试图为网络打印机的安全防护提出切合实际的建议。</p>
+<h3 id="2-相关知识">2 相关知识</h3>
+<p>生活中常用的打印机，根据其使用方式大致分为三类：仅支持USB连接使用的基础款打印机、支持USB连接使用且支持小程序或手机应用连接使用的加强款打印机、支持USB连接和小程序或手机应用连接使用且支持无线连接的终极款打印机。前面三类打印机的基本工作原理差别不大，但是不同的连接方式造成其攻击面的不同，本文的研究与实操主要针对第三类打印机展开。</p>
+<h4 id="21-打印机的基本工作原理">2.1 打印机的基本工作原理</h4>
+<p>打印机由硬件系统和软件系统组成，相当于一个微型计算机系统，具有计算功能和存储功能，有自己的指令集架构。打印机的打印原理如下图所示，要让打印机执行诸如打印某份文件的指定动作，首先需要将数据以打印机能理解的形式发送给打印机，为此有两方面措施：一方面通过打印机协议控制传输数据的格式，一方面利用打印机语言传递给打印机正确的数据含义；然后，打印机根据读取的信息做出相应的动作，我们就能得到需要的打印文件。</p>
+<p>网络打印机在功能上可划分为介绍文件和打印文件两个部分，其中接收文件部分涉及到打印机协议，打印文件部分涉及到打印机语言。</p>
+<h5 id="211-接收文件">2.1.1 接收文件</h5>
+<p>网络打印机通过网络来接收文件，文件由发送者通过网络发送然后由网络打印机接收，这就是一个网络打印机接收文件的大致流程。文件在发送的过程中被转换成了能够在交换机和路由器之间传输的01数据串，网络打印机为了保证接收文件的完整性和可解读性，需要与发送设备有对应网络协议的支持。常见的打印机协议如下：</p>
+<ul>
+<li>RAW协议
+RAW协议又名JetDirect/AppSocket，以RAW格式发送数据。为发送RAW格式的作业，打印服务器将打开一个针对打印机网络接口的TCP流，对许多设备来说，该接口可能是端口9100/9101/9102。在打开TCP/IP端口之后，打印服务器将按照RFC 1759(Printer MIB)，使用SNMP来查询设备的对象标识符OID(Object Identifier)。若设备返回了一个值，就解析系统文件tcpmon.ini来寻找匹配项，根据匹配的内容完成配置设置。若打印机制造商提供了特定设备的特殊配置信息，</li>
+<li>IPP
+IPP(Internet Printing Protocol)基于HTTP协议，若要提交打印作业或获取打印机的状态信息，需要发送一个HTTP POST请求给在631/TCP端口监听的IPP服务器。IPP多被Linux和Solaris系统使用,最典型的应用场景是CUPS(Unix系统通用打印系统,Common Unix Print System)和Mac OS(OS X)。</li>
+<li>LPR
+LPR基于TCP/IP协议簇，共享服务器上的打印机资源,通常用于Unix操作系统通信方面。在利用LPR发送打印请求给打印机时：服务器会运行在515/TCP端口监听的守护进程LPD(Line Printer Daemon)接收打印请求；使用者可通过命令向进程发送请求，同时需要发送一个定义了作业/用户名的控制文件和一个包含有需要打印的数据的数据文件，控制文件中包含的文件格式定义了数据文件的文件格式；最终如何打印文件由运行LPD进程的服务器决定。</li>
+</ul>
+<h5 id="212-打印文件">2.1.2 打印文件</h5>
+<p>网络打印机自身是一个微型计算机系统，它可以解读某种格式的代码，并通过该代码知道该份文件的排版、实际数据，这个部件在打印机中被称作打印机的控制器/控制电路，控制器可以解读某种打印机语言。根据功能，打印机语言可分为针对打印机设备控制的打印机控制语言PCL(Printer Control Language)和针对打印文件呈现的语言PDL(Printer Description Language)。目前常见使用的打印机语言有Adobe的PostScript和惠普的PCL(Printing Control Language)及PJL(Printing Job Language)。</p>
+<ul>
+<li>PostScript
+PS是一种基于堆栈的、图灵完备的解释型语言,能使用基本文件系统I/O来存储常用文件,支持主机和打印机之间的双向通信，在激光打印机中被广泛使用。</li>
+<li>PCL
+PCL是功能有限的页面描述语言，安全性相对较高，被大多数厂商和设备使用。</li>
+<li>PJL
+PJL是PCL的扩展,为任务级别的打印机语言，兼备打印机控制和页面描述命令，不止可以针对当前打印工作，还可以对打印机进行设置，多数厂商只支持部分PJL命令，厂商会针对自己的打印机的特有需求，增加独有的打印机控制命令。</li>
+</ul>
+<p>打印机在接收到数据时的打印流程如下图所示：</p>
+<!-- raw HTML omitted -->
+<h4 id="22-打印机的攻击类型">2.2 打印机的攻击类型</h4>
+<p>本节根据现有资料大致整理了5种打印机攻击类型，并总结了针对相应攻击的防范措施。</p>
+<h5 id="221-拒绝服务攻击">2.2.1 拒绝服务攻击</h5>
+<p>通过消耗CPU/内存或带宽方面的资源等等手段阻止合法用户使用打印机服务。</p>
+<ol>
+<li>阻塞传输信道
+大多数打印机的打印作业是串行处理的，即一次只能处理一个作业。若作业未有效终止，打印通道将被阻塞，直到触发超时，通过PJL设置高超时值，可以阻止合法用户打印。
+攻击条件：能够访问打印机的9100/tcp端口</li>
+<li>文档处理
+通过在文档中包含PostScript/PJL命令使得打印机功能无法正常使用。利用允许无限循环或需要大量计算时间的计算的页面描述语言以使打印机的RIP保持繁忙；利用打印机语言的相应命令来上传永久宏或字体，直到可用内存耗尽，进而无法使用打印功能；利用打印机语言支持的命令修改打印机的设置，比如利用PJL命令将打印机设为服务模式，完全禁用所有打印功能。
+攻击条件：能够通过USB/9100端口/跨站点打印</li>
+<li>物理损坏
+打印机和其他嵌入式设备的长期设置存储在非易失性存储器（NVRAM）中，该存储器传统上被实现为EEPROM或闪存。这两种部件的写入周期都有限。PJL和PostScript打印作业本身可以更改长期设置，如纸盘介质大小或控制面板密码。故意多次更改长期设置导致NVRAM的物理破坏，包含错误值的固定设置可能会使设备实际上无法使用。
+攻击条件：能够与打印机建立长时间的网络连接</li>
+</ol>
+<h5 id="222-权限提升">2.2.2 权限提升</h5>
+<p>通过某些手段绕过保护机制或扩展攻击者能力。</p>
+<ol>
+<li>恢复出厂设置
+使用打印机控制或页面描述语言在线重置出厂默认值，覆盖用户设置的密码等保护机制，从而绕过保护机制。比如利用SNMP请求/PJL命令/PostScript程序将设备重置为出厂默认值，进而获得对打印机的访问权限。
+攻击条件：能够通过USB/9100端口/跨站点打印</li>
+<li>绕过计数器
+能够“打印”是大多数针对网络打印机的攻击的先决条件，因此首先需要绕过任何限制。
+①用户身份验证
+模拟另一个用户，以通过用户身份验证。
+攻击条件：能够访问打印机服务器
+攻击效果：欺骗打印机计数系统
+②操纵打印页面计数器
+通过PJL命令/PostScript代码操纵打印页面计数器修改设置
+攻击条件：对于硬件页面计数器，攻击者需要能够访问打印机服务器；对于软件页面计数器，攻击者需要能够将作业转发给（基于CUPS的）打印服务器
+攻击效果：操纵打印页面计数器实现免费打印等等</li>
+<li>传真和扫描仪
+一些多功能打印机/外围设备（MFP)具有额外的内置功能，如扫描/传真——有更多的途径获取敏感信息和扩展功能。例如传真以音频音调的形式发送传真信息，可通过电话系统把信息发送到任何具有传真功能的设备，以绕过典型的保护机制，如TCP/IP防火墙或入侵检测系统，并在内部网络中的打印机或MFP上执行恶意命令。</li>
+</ol>
+<h5 id="223-打印作业访问">2.2.3 打印作业访问</h5>
+<p>打印机上最有价值的数据是打印作业本身。即使在数字世界中，重要的文件也会被打印并作为硬拷贝保存。在具有加密硬盘和网络流量的高安全环境中，打印机可能是安全链中最薄弱的一环。</p>
+<ol>
+<li>
+<p>打印作业保留
+①打印作业保留功能
+某些打印机存储了可从web服务器访问的打印作业。通常情况下，可以使用标准PJL命令/专用PostScript代码为某个打印作业显式激活作业保留，然后作业被保存在内存中，可以从控制面板重新打印。
+攻击条件：只有物理/本地攻击者才能利用此功能重新打印存储的作业。
+②作业捕获功能
+用PostScript，可以访问当前的打印作业，使用startjob操作符，甚至可以脱离服务器循环，访问未来的作业。如果将PostScript用作打印机驱动程序，这种功能有可能捕获所有文档。
+攻击条件：能够通过USB/9100端口/跨站点打印
+攻击效果：获取打印机上最有价值的数据—打印作业。</p>
+</li>
+<li>
+<p>打印作业操作
+如果攻击者可以更改打印作业，对其内容进行替换或覆盖，将从根本上破坏信任。用户无法确定屏幕上查看的文档与打印机中打印出来的是否相同。
+攻击条件：能够通过USB/9100端口/跨站点打印
+攻击效果：更改打印作业。</p>
+</li>
+</ol>
+<h5 id="224-信息泄露">2.2.4 信息泄露</h5>
+<p>除了打印作业，打印机还可能包含其他潜在的敏感信息，如密码——不仅针对设备本身，有时甚至针对周围的网络环境。</p>
+<ol>
+<li>内存访问
+使用标准PJL命令/专用PostScript代码能获得对打印机内存或NVRAM的访问权限。
+攻击条件：能够通过USB/9100端口/跨站点打印
+攻击效果：读取打印机上内存中的敏感信息。</li>
+<li>文件系统访问
+使用标准PJL命令/专用PostScript代码对文件系统进行读取。
+攻击条件：能够通过USB/9100端口/跨站点打印
+攻击效果：能检索敏感信息，如配置文件或存储的打印作业；通过写访问操作文件甚至可能导致远程代码执行。</li>
+<li>凭证披露
+打印机通常使用默认密码或根本没有初始密码进行部署。在这两种情况下，最终用户或管理员都必须主动设置密码以保护设备。
+①暴力破解密码
+通过在单个打印作业中包含所有种可能的组合来暴力破解密码，盲删密码保护。
+攻击条件：能够通过USB/9100端口/跨站点打印
+攻击效果：破解打印机的密码。
+②特定于模型的密码泄露
+如果MFP允许攻击者在保留存储的凭据的同时更改LDAP服务器的地址，每当有人试图通过MFP进行身份验证时，MFP就会将原始LDAP凭据泄漏给攻击者控制的服务器。
+攻击条件：能够访问打印机的嵌入式web服务器。
+攻击效果：获得打印机服务器的密码/身份凭证。</li>
+</ol>
+<h5 id="225-代码执行">2.2.5 代码执行</h5>
+<p>任何计算机系统都可能容易执行恶意代码，打印机也不例外。</p>
+<ol>
+<li>
+<p>缓冲区溢出
+①PJL输入
+如果给定的输入超过缓冲区大小，PJL处理器可能容易发生缓冲区溢出。
+攻击条件：能够通过USB/9100端口/跨站点打印
+攻击效果：可能导致拒绝服务/给定正确的外壳代码和返回地址甚至可能导致远程代码执行
+②LPD daemon
+LPD协议允许多个用户定义的向量，如jobname、username或hostname，这些向量可能没有得到足够的保护。发送超过LPD规范允许的字符可能会导致溢出。
+攻击条件：能通过网络访问LPD守护程序。
+攻击效果：导致缓冲区溢出。</p>
+</li>
+<li>
+<p>固件更新
+与其他联网设备相比，打印机通常将固件更新部署为普通打印作业，这为攻击者打开了一个广阔的大门，因为访问打印功能通常是一个很低的障碍。由于大多数制造商未就保护机制做出声明，利用该漏洞很难。</p>
+</li>
+<li>
+<p>软件包
+近年来，打印机供应商开始引入在设备上安装定制软件的可能性。这类“打印机应用”的格式是专有的，SDK不向公众开放，编写在打印机上运行的定制软件的功能仅为经销商和承包商保留，而不为最终用户保留，因此利用该漏洞也很难。</p>
+</li>
+</ol>
+<h3 id="3-入侵实验">3 入侵实验</h3>
+<h4 id="31-攻击框架及流程">3.1 攻击框架及流程</h4>
+<!-- raw HTML omitted -->
+<ol>
+<li>攻击者首先通过实施中间人攻击来窃听从受害者设备上发出的包，并且通过某些手段过滤掉目的地IP 非打印机的包。</li>
+<li>根据在上文中所讲述的打印机协议判断使用的是哪种打印机协议，从而根据其协议特点来从抓到的包中找到含有实际打印数据的包(更精确地说，能被攻击者所有打印机所解读的包)。</li>
+<li>攻击者将找到的包处理成为攻击者打印机能解读的形式(可能无需处理)然后发送给打印机，从而可以在攻击者打印机端打印出与受害者发送文件一样的文件。</li>
+</ol>
+<p>在实操时，把打印机、使用打印机的虚拟机以及负责攻击的虚拟机连到同一个wifi下，利用Ettercap和Wireshark工具窃听使用者的虚拟机向打印机发送的数据包，对数据包进行处理，丢给相同型号的打印机进行解读，成功地获得了使用者的打印文件的信息。</p>
+<!-- raw HTML omitted -->
+<h4 id="32-实操问题总结">3.2 实操问题总结</h4>
+<p>本文针对Linux环境和Windows 10系统环境均进行了测试。
+对于Linux下CUPS 的测试:
+在Ubuntu 20.04中配置虚拟打印机为RAW协议或者IPP协议，使用的CUPS版本为CUPS 2.3.1，可成功实现上述攻击。
+对于Windows 10下的打印测试:
+Windows 10默认使用IPP协议进行解析，而在传输数据时使用TLS协议进行加密。在测试过程中，该攻击失败，因未尝试破解TLS传输的数据。如果能解密TLS传输的加密数据，那么可以考虑使用该方法进行攻击。</p>
+<p>在入侵打印机时遇到的相关问题如下。</p>
+<ol>
+<li>使用了Ettercap 和WireShark 来进行攻击，但是这个“intelligible with
+some decoding”是怎么解码的？</li>
+</ol>
+<blockquote>
+<p>攻击者也要有一台打印机,利用打印机直接读取。</p>
+</blockquote>
+<ol start="2">
+<li>如何确定目的打印机的IP?</li>
+</ol>
+<blockquote>
+<p>方法1:ping 每个IP 并带上参数-a,会解析主机名显示在cmd 上，如果是打印机的主机名一般会有该打印机品牌的名字在主机名里面，很容易看出来
+方法2:有时候方法1 不奏效，对于惠普的联网打印机，攻击者在自己的电脑浏览器上输入IP(攻击者要和打印机在同一个网络里面)，如果跳转的是一个惠普(HP)的界面，那么这个IP 是一个打印机。</p>
+</blockquote>
+<ol start="3">
+<li>窃听的数据包的哪一部分(可能是全部)给打印机读才能让打印机打印出一份一模一样的文件?</li>
+</ol>
+<blockquote>
+<p>受害者要打印的数据一定含在受害者发往打印机中的包中，即只需要目的IP是打印机的包即可。因为打印机工作开始是接收到了支持的打印机语言，可以直接对内容进行解码。
+窃听的数据包中的打印控制文件和打印数据文件(这两份文件一定要是攻击者所拥有的打印机支持的语言所形成的文件)给打印机读就能让打印机打印出一份一模一样的文件。如果给的数据多了，打印机不认识，可能造成无法打印的情况；数据给少了，打印不出一模一样的文件。</p>
+</blockquote>
+<ol start="4">
+<li>如何知道窃听到的数据包里面哪些符合要求的？</li>
+</ol>
+<blockquote>
+<p>已知所使用的惠普打印机支持PJL和PCL相关的语言。这时参考HP的PCL/PJL 手册[8]里面的内容，来分离出数据包中将来需要传给打印机的数据。
+通用方法:如果窃取的数据包中读到的内容发现是某种打印机语言，可以通过阅读该种打印机语言对应的手册(如果能找到的话)来对该语言有一些了解，从而从数据包中分离出数据来。</p>
+</blockquote>
+<ol start="5">
+<li>在测试RAW 协议时，数据直接是明文传送，在阅读了PCL/PJL 手册之后非常容易地找到了所需要传送给打印机的数据；但在测试IPP 协议的时候，数据在wireshark中不显示，是一团乱码，该如何处理才能将其送给打印机？</li>
+</ol>
+<blockquote>
+<p>根据阅读wireshark 中对应的IPP 协议解码部分，看到了一个<code>:compression.gzip.</code>类似的码(可能.号的数量不一样)，随即去搜索gzip，发现是一个HTTP 协议常用的数据压缩格式。因为所使用的wireshark 会自动重组分块发送的包，所以数据一定是在一起的。之后为了让送给打印机的数据不多不少，所以需要解码gzip。
+gzip 文件编码头为<code>1F 8B 08</code>,在5 的基础上找到数据(Data)，然后解压缩(首先要确保文件中只有压缩过的数据，这个可以用16 进制编辑器或者编程来完成)即可得到要发送给打印机的数据。</p>
+</blockquote>
+<ol start="6">
+<li>如何让打印机打印文件?</li>
+</ol>
+<blockquote>
+<p>鉴于本文所使用的打印机可以读取PJL 和PCL 文件，将处理过后的数据的后缀变为了<code>.pcl</code>，之后向自己的打印机发送打印该<code>.pcl</code>文件的命令即可。</p>
+</blockquote>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>更新于 2023-02-05</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="分享到 Twitter" data-sharer="twitter" data-url="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/" data-title="设备安全: 打印机" data-hashtags="设备安全"><i class="fab fa-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Facebook" data-sharer="facebook" data-url="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/" data-hashtag="设备安全"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Hacker News" data-sharer="hackernews" data-url="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/" data-title="设备安全: 打印机"><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Line" data-sharer="line" data-url="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/" data-title="设备安全: 打印机"><i data-svg-src="https://cdn.jsdelivr.net/npm/simple-icons@7.3.0/icons/line.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 微博" data-sharer="weibo" data-url="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-%E6%89%93%E5%8D%B0%E6%9C%BA%E5%85%A5%E4%BE%B5/" data-title="设备安全: 打印机"><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../../tags/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/">设备安全</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">返回</a></span>&nbsp;|&nbsp;<span><a href="../../../">主页</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"><a href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/02-heap%E6%93%8D%E4%BD%9C_v.0.4/" class="prev" rel="prev" title=""><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i></a>
+            <a href="../../../posts/6-%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8/%E8%AE%BE%E5%A4%87%E5%AE%89%E5%85%A8-badusb/" class="next" rel="next" title="设备安全: BadUsb">设备安全: BadUsb<i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="回到顶部">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="查看评论">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sharer.js@0.5.1/sharer.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"复制到剪贴板","maxShownLines":50},"comment":{}};</script><script type="text/javascript" src="../../../js/theme.min.js"></script></body>
+</html>

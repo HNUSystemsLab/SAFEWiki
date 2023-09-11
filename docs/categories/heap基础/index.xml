@@ -1,0 +1,56 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>heap基础 - 分类 - 安全维基</title>
+        <link>/categories/heap%E5%9F%BA%E7%A1%80/</link>
+        <description>heap基础 - 分类 - 安全维基</description>
+        <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><managingEditor>admin@gmail-1.com (admin)</managingEditor>
+            <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate><atom:link href="/categories/heap%E5%9F%BA%E7%A1%80/" rel="self" type="application/rss+xml" /><item>
+    <title>heap基础 0/6-new: malloc_chunk </title>
+    <link>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%806-security-checks/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%806-security-checks/</guid>
+    <description><![CDATA[title: &ldquo;heap基础 6/6: Security Checks &quot; date: 2023-02-05T15:36:08+08:00 draft: false tags : [ &ldquo;heap基础&rdquo;, ] categories : [ &ldquo;heap基础&rdquo;]]></description>
+</item>
+<item>
+    <title>heap基础 1/6: malloc_chunk </title>
+    <link>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%801-malloc_chunk/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%801-malloc_chunk/</guid>
+    <description><![CDATA[认识malloc_chunck 此结构用于表示特定的内存块。在程序执行中，我们称malloc申请的内存为chunk，用malloc_chunk]]></description>
+</item>
+<item>
+    <title>heap基础 2/6: malloc_state</title>
+    <link>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%802-malloc_state/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%802-malloc_state/</guid>
+    <description><![CDATA[malloc_state malloc_state展示了Arena标头的详细信息。主线程的Arena是一个全局变量，而不是heap段的一部分。其他线程的 Arena 标头（ma]]></description>
+</item>
+<item>
+    <title>heap基础 3/6: Bins 和 Chunks </title>
+    <link>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/</guid>
+    <description><![CDATA[Bins和Chunks Bin 是由free chunk（未分配）组成的一个列表（双向或单向链表）。bins 根据其包含的块的大小被分为以下4类： Fast bin Unsorted]]></description>
+</item>
+<item>
+    <title>heap基础 4/6: Internal Functions内部函数 </title>
+    <link>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/</guid>
+    <description><![CDATA[Internal Function内部函数 这是内部使用的一些常用函数的列表。要注意的是，某些函数实际上是使用 #define 指令定义的。因此，对调用参数的更改实际上在调用]]></description>
+</item>
+<item>
+    <title>heap基础 5/6: Core Functions核心函数 </title>
+    <link>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/</link>
+    <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
+    <author>admin</author>
+    <guid>/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/</guid>
+    <description><![CDATA[核心函数 说明： void *_init_malloc(mstate av,size_t bytes) 1.更新bytes以处理对齐等。 2.检查av是否为NULL。 3.在没有可用分区的情况下（av为NULL），调用sysm]]></description>
+</item>
+</channel>
+</rss>

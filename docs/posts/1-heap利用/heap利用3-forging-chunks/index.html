@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>heap利用 3/9: Forging Chunks - 安全维基</title><meta name="Description" content="分享安全技术"><meta property="og:title" content="heap利用 3/9: Forging Chunks" />
+<meta property="og:description" content="chunk被free后，会被插入到一个bin链表中，但是chunk对应的指针在程序中仍然可用。如果攻击者能够控制此指针，那么它就可以修改bi" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
+<meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="heap利用 3/9: Forging Chunks"/>
+<meta name="twitter:description" content="chunk被free后，会被插入到一个bin链表中，但是chunk对应的指针在程序中仍然可用。如果攻击者能够控制此指针，那么它就可以修改bi"/>
+<meta name="application-name" content="湖南大学安全Wiki">
+<meta name="apple-mobile-web-app-title" content="湖南大学安全Wiki"><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="../../../favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/" /><link rel="prev" href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A84-unlink-exploit/" /><link rel="next" href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A82-double-free/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css"></noscript><link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "heap利用 3/9: Forging Chunks",
+        "inLanguage": "zh-CN",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "\/posts\/1-heap%E5%88%A9%E7%94%A8\/heap%E5%88%A9%E7%94%A83-forging-chunks\/"
+        },"genre": "posts","keywords": "heap利用","wordcount":  947 ,
+        "url": "\/posts\/1-heap%E5%88%A9%E7%94%A8\/heap%E5%88%A9%E7%94%A83-forging-chunks\/","datePublished": "2023-02-05T15:36:08+08:00","dateModified": "2023-02-05T15:36:08+08:00","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "admin"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('auto' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'auto' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="../../../categories/"> 所有分类 </a><a class="menu-item" href="../../../posts/"> 文章 </a><a class="menu-item" href="../../../tags/"> 标签 </a><a class="menu-item" href="../../../about/"> 关于 </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="../../../" title="安全维基">湖南大学安全Wiki</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="../../../categories/" title="">所有分类</a><a class="menu-item" href="../../../posts/" title="">文章</a><a class="menu-item" href="../../../tags/" title="">标签</a><a class="menu-item" href="../../../about/" title="">关于</a><a href="javascript:void(0);" class="menu-item theme-switch" title="切换主题">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">目录</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">heap利用 3/9: Forging Chunks</h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="../../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-category">收录于 <a href="../../../categories/heap%E5%88%A9%E7%94%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap利用</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2023-02-05">2023-02-05</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 947 字&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;预计阅读 2 分钟&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>目录</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents"></nav></div>
+            </div><div class="content" id="content"><p>chunk被free后，会被插入到一个bin链表中，但是chunk对应的指针在程序中仍然可用。如果攻击者能够控制此指针，那么它就可以修改bin中的链表结构，从而插入攻击者自己伪造的chunk，这就是forging chunks利用。下面的示例程序展示了fast bin的情况下是如何实现伪造chunk的。</p>
+<p><strong>示例程序</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">struct</span> <span class="n">forged_chunk</span> <span class="p">{</span>
+  <span class="n">size_t</span> <span class="n">prev_size</span><span class="p">;</span>
+  <span class="n">size_t</span> <span class="n">size</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">forged_chunk</span> <span class="o">*</span><span class="n">fd</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">forged_chunk</span> <span class="o">*</span><span class="n">bck</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>               <span class="c1">// padding
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="c1">// First grab a fast chunk
+</span><span class="c1"></span><span class="n">a</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>               <span class="c1">// &#39;a&#39; points to 0x219c010
+</span><span class="c1"></span>
+<span class="c1">// Create a forged chunk
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">forged_chunk</span> <span class="n">chunk</span><span class="p">;</span>    <span class="c1">// At address 0x7ffc6de96690
+</span><span class="c1"></span><span class="n">chunk</span><span class="p">.</span><span class="n">size</span> <span class="o">=</span> <span class="mh">0x20</span><span class="p">;</span>            <span class="c1">// This size should fall in the same fastbin
+</span><span class="c1"></span><span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">chunk</span><span class="p">.</span><span class="n">fd</span><span class="p">;</span>     <span class="c1">// Data starts here for an allocated chunk
+</span><span class="c1"></span><span class="n">strcpy</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#34;attacker&#39;s data&#34;</span><span class="p">);</span>
+
+<span class="c1">// Put the fast chunk back into fastbin
+</span><span class="c1"></span><span class="n">free</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+<span class="c1">// Modify &#39;fd&#39; pointer of &#39;a&#39; to point to our forged chunk
+</span><span class="c1"></span><span class="o">*</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span><span class="n">a</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span><span class="p">)</span><span class="o">&amp;</span><span class="n">chunk</span><span class="p">;</span>
+<span class="c1">// Remove &#39;a&#39; from HEAD of fastbin
+</span><span class="c1">// Our forged chunk will now be at the HEAD of fastbin
+</span><span class="c1"></span><span class="n">malloc</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>                   <span class="c1">// Will return 0x219c010
+</span><span class="c1"></span>
+<span class="n">victim</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>          <span class="c1">// Points to 0x7ffc6de966a0
+</span><span class="c1"></span><span class="n">printf</span><span class="p">(</span><span class="s">&#34;%s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">victim</span><span class="p">);</span>       <span class="c1">// Prints &#34;attacker&#39;s data&#34; !!
+</span></code></pre></div><p>其中，forged chunk的大小参数设置为0x20，以便绕过安全检查 &lsquo;malloc():memory corruption(fast)'，为了检查chunk的大小是否落在特定fast bin的范围内。此外，从上述程序可以知道，victim指向forged chunk前面的 0x10(0x8+0x8) 字节，即allocated chunk的数据从<code>fd</code>指针开始。</p>
+<p><br>
+<strong>fast bin链表状态变化</strong></p>
+<p>不同操作后对应fast bin链表的状态变化如下：</p>
+<ol>
+<li><code>a</code> 被free后。</li>
+</ol>
+<blockquote>
+<p>fast bin链表：head-&gt;a-&gt;tail</p>
+</blockquote>
+<ol start="2">
+<li><code>a</code> 的<code>fd</code>指针被更改为指向<code>forged chunk</code>，而<code>forged chunk</code>的<code>fd</code>实际指向恶意代码。</li>
+</ol>
+<blockquote>
+<p>fast bin链表：head-&gt;a-&gt;forged chunk-&gt;undefined</p>
+</blockquote>
+<ol start="3">
+<li><code>malloc</code> 请求后从链表中取出<code>a</code>。</li>
+</ol>
+<blockquote>
+<p>fast bin链表：head-&gt;forged chunk-&gt;undefined</p>
+</blockquote>
+<ol start="4">
+<li>用户发出<code>malloc</code> 请求，<code>forged chunk</code>被返回给用户。</li>
+</ol>
+<blockquote>
+<p>fast bin链表：head-&gt;underfined</p>
+</blockquote>
+<p><strong>注意</strong></p>
+<ol>
+<li>对于同一个bin链表中的fast chunk的另一个<code>malloc</code>请求将导致段错误。</li>
+<li>尽管我们请求的是10字节却将forged chunk的大小设置为32字节，但两者都落在fast bin的32字节chunk的范围内。</li>
+<li>针对small chunks和large chunks的攻击在后面的House of Lore一节可见。</li>
+<li>以上程序代码是为64位机器设计的。如若要在32位机器上运行，需将<code>unsigned long long</code>替换为<code>unsigned int</code>，因为指针大小会从8字节变为4字节。此外，不应该再使用32字节作为forged chunk的大小，小于17字节为好。</li>
+</ol>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>更新于 2023-02-05</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="分享到 Twitter" data-sharer="twitter" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/" data-title="heap利用 3/9: Forging Chunks" data-hashtags="heap利用"><i class="fab fa-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Facebook" data-sharer="facebook" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/" data-hashtag="heap利用"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Hacker News" data-sharer="hackernews" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/" data-title="heap利用 3/9: Forging Chunks"><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 Line" data-sharer="line" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/" data-title="heap利用 3/9: Forging Chunks"><i data-svg-src="https://cdn.jsdelivr.net/npm/simple-icons@7.3.0/icons/line.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="分享到 微博" data-sharer="weibo" data-url="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/" data-title="heap利用 3/9: Forging Chunks"><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../../tags/heap%E5%88%A9%E7%94%A8/">heap利用</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">返回</a></span>&nbsp;|&nbsp;<span><a href="../../../">主页</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"><a href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A84-unlink-exploit/" class="prev" rel="prev" title="heap利用 4/9: Unlink Exploit"><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>heap利用 4/9: Unlink Exploit</a>
+            <a href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A82-double-free/" class="next" rel="next" title="heap利用 2/9: Double Free">heap利用 2/9: Double Free<i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="回到顶部">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="查看评论">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/sharer.js@0.5.1/sharer.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"复制到剪贴板","maxShownLines":50},"comment":{}};</script><script type="text/javascript" src="../../../js/theme.min.js"></script></body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>My First Post | new new new test</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="bins和chunks bin 是由free chunk（未分配）组成的列表（双向或单向链表）。Bins 根据其包含的块的大小被分为以下4类：
+Fast bin Unsorted bin Small bin Large bin Fast bins 使用以下方法声明：
+typedef struct malloc_chunk *mfastbinptr; mfastbinptr fastbinsY[]; // Array of pointers to chunks Unsorted、small和large Bins使用以下方式声明：
+typedef struct malloc_chunk* mchunkptr; mchunkptr bins[]; // Array of pointers to chunks 最初，在初始化过程中，small和large bin为空。每个bin由 bins 数组中的两个值表示，第一个值是指向“HEAD”的指针，第二个值是指向“TAIL”的指针。对于fast bin（单向链表），第二个值会设为 NULL。
+Fast bins 共有10个fast bin，每一个bin都是一个单向链表，fast bins中的块叫做fast chunk。对链表的添加和删除操作都是从链表尾进行，遵循LIFO算法。
+每个bin中的chunk大小都是相同的。10 个bin中包含的chunk的大小有：16、24、32、40、48、56、64、72、80 和 88字节，此处提到的大小也包括元数据。在指针大小为 4 个字节的平台上，将会提供不超过4个字节的空间来存储chunk。该chunk的prev_size和size字段将保存已分配区块的元数据。下一个连续区块prev_size将保存用户数据。
+两个连续的空闲fast chunk不会合并在一起。
+Unsorted bin 只有1个unsorted bin。在大型chunk或者小型chunk释放后，会进入这个bin当中。此 bin 的主要用途是充当缓存层（某种）以加快分配和取消分配请求的速度。
+Small bins 共有62个small bin，small bins的块就叫做small chunks。就内存的分配和释放速度而言，small bins的速度要比large bins快，但比fast bins慢。每一个small bin都是双向链表，采用FIFO（先入先出）算法，插入操作发生在“头部”，而删除发生在“尾部”（以FIFO方式）。">
+    <meta name="generator" content="Hugo 0.110.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+    
+    
+      
+
+    
+
+    
+    
+    <meta property="og:title" content="My First Post" />
+<meta property="og:description" content="bins和chunks bin 是由free chunk（未分配）组成的列表（双向或单向链表）。Bins 根据其包含的块的大小被分为以下4类：
+Fast bin Unsorted bin Small bin Large bin Fast bins 使用以下方法声明：
+typedef struct malloc_chunk *mfastbinptr; mfastbinptr fastbinsY[]; // Array of pointers to chunks Unsorted、small和large Bins使用以下方式声明：
+typedef struct malloc_chunk* mchunkptr; mchunkptr bins[]; // Array of pointers to chunks 最初，在初始化过程中，small和large bin为空。每个bin由 bins 数组中的两个值表示，第一个值是指向“HEAD”的指针，第二个值是指向“TAIL”的指针。对于fast bin（单向链表），第二个值会设为 NULL。
+Fast bins 共有10个fast bin，每一个bin都是一个单向链表，fast bins中的块叫做fast chunk。对链表的添加和删除操作都是从链表尾进行，遵循LIFO算法。
+每个bin中的chunk大小都是相同的。10 个bin中包含的chunk的大小有：16、24、32、40、48、56、64、72、80 和 88字节，此处提到的大小也包括元数据。在指针大小为 4 个字节的平台上，将会提供不超过4个字节的空间来存储chunk。该chunk的prev_size和size字段将保存已分配区块的元数据。下一个连续区块prev_size将保存用户数据。
+两个连续的空闲fast chunk不会合并在一起。
+Unsorted bin 只有1个unsorted bin。在大型chunk或者小型chunk释放后，会进入这个bin当中。此 bin 的主要用途是充当缓存层（某种）以加快分配和取消分配请求的速度。
+Small bins 共有62个small bin，small bins的块就叫做small chunks。就内存的分配和释放速度而言，small bins的速度要比large bins快，但比fast bins慢。每一个small bin都是双向链表，采用FIFO（先入先出）算法，插入操作发生在“头部”，而删除发生在“尾部”（以FIFO方式）。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://example.org/posts/heap-3-bins_and_chunks/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
+<meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" />
+<meta itemprop="name" content="My First Post">
+<meta itemprop="description" content="bins和chunks bin 是由free chunk（未分配）组成的列表（双向或单向链表）。Bins 根据其包含的块的大小被分为以下4类：
+Fast bin Unsorted bin Small bin Large bin Fast bins 使用以下方法声明：
+typedef struct malloc_chunk *mfastbinptr; mfastbinptr fastbinsY[]; // Array of pointers to chunks Unsorted、small和large Bins使用以下方式声明：
+typedef struct malloc_chunk* mchunkptr; mchunkptr bins[]; // Array of pointers to chunks 最初，在初始化过程中，small和large bin为空。每个bin由 bins 数组中的两个值表示，第一个值是指向“HEAD”的指针，第二个值是指向“TAIL”的指针。对于fast bin（单向链表），第二个值会设为 NULL。
+Fast bins 共有10个fast bin，每一个bin都是一个单向链表，fast bins中的块叫做fast chunk。对链表的添加和删除操作都是从链表尾进行，遵循LIFO算法。
+每个bin中的chunk大小都是相同的。10 个bin中包含的chunk的大小有：16、24、32、40、48、56、64、72、80 和 88字节，此处提到的大小也包括元数据。在指针大小为 4 个字节的平台上，将会提供不超过4个字节的空间来存储chunk。该chunk的prev_size和size字段将保存已分配区块的元数据。下一个连续区块prev_size将保存用户数据。
+两个连续的空闲fast chunk不会合并在一起。
+Unsorted bin 只有1个unsorted bin。在大型chunk或者小型chunk释放后，会进入这个bin当中。此 bin 的主要用途是充当缓存层（某种）以加快分配和取消分配请求的速度。
+Small bins 共有62个small bin，small bins的块就叫做small chunks。就内存的分配和释放速度而言，small bins的速度要比large bins快，但比fast bins慢。每一个small bin都是双向链表，采用FIFO（先入先出）算法，插入操作发生在“头部”，而删除发生在“尾部”（以FIFO方式）。"><meta itemprop="datePublished" content="2023-02-05T15:36:08+08:00" />
+<meta itemprop="dateModified" content="2023-02-05T15:36:08+08:00" />
+<meta itemprop="wordCount" content="182">
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="My First Post"/>
+<meta name="twitter:description" content="bins和chunks bin 是由free chunk（未分配）组成的列表（双向或单向链表）。Bins 根据其包含的块的大小被分为以下4类：
+Fast bin Unsorted bin Small bin Large bin Fast bins 使用以下方法声明：
+typedef struct malloc_chunk *mfastbinptr; mfastbinptr fastbinsY[]; // Array of pointers to chunks Unsorted、small和large Bins使用以下方式声明：
+typedef struct malloc_chunk* mchunkptr; mchunkptr bins[]; // Array of pointers to chunks 最初，在初始化过程中，small和large bin为空。每个bin由 bins 数组中的两个值表示，第一个值是指向“HEAD”的指针，第二个值是指向“TAIL”的指针。对于fast bin（单向链表），第二个值会设为 NULL。
+Fast bins 共有10个fast bin，每一个bin都是一个单向链表，fast bins中的块叫做fast chunk。对链表的添加和删除操作都是从链表尾进行，遵循LIFO算法。
+每个bin中的chunk大小都是相同的。10 个bin中包含的chunk的大小有：16、24、32、40、48、56、64、72、80 和 88字节，此处提到的大小也包括元数据。在指针大小为 4 个字节的平台上，将会提供不超过4个字节的空间来存储chunk。该chunk的prev_size和size字段将保存已分配区块的元数据。下一个连续区块prev_size将保存用户数据。
+两个连续的空闲fast chunk不会合并在一起。
+Unsorted bin 只有1个unsorted bin。在大型chunk或者小型chunk释放后，会进入这个bin当中。此 bin 的主要用途是充当缓存层（某种）以加快分配和取消分配请求的速度。
+Small bins 共有62个small bin，small bins的块就叫做small chunks。就内存的分配和释放速度而言，small bins的速度要比large bins快，但比fast bins慢。每一个small bin都是双向链表，采用FIFO（先入先出）算法，插入操作发生在“头部”，而删除发生在“尾部”（以FIFO方式）。"/>
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+   
+  
+
+  <header>
+    <div class="bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        new new new test
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+    </div>
+  </header>
+
+
+
+    <main class="pb7" role="main">
+      
+  
+  <article class="flex-l flex-wrap justify-between mw8 center ph3">
+    <header class="mt4 w-100">
+      <aside class="instapaper_ignoref b helvetica tracked">
+          
+        POSTS
+      </aside>
+      
+
+
+
+
+
+
+
+
+
+
+  <div id="sharing" class="mt3 ananke-socials">
+    
+  </div>
+
+
+      <h1 class="f1 athelas mt3 mb1">My First Post</h1>
+      
+      
+      
+      <time class="f6 mv4 dib tracked" datetime="2023-02-05T15:36:08+08:00">February 5, 2023</time>
+      
+
+      
+      
+    </header>
+    <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><h2 id="bins和chunks">bins和chunks</h2>
+<p>bin 是由free chunk（未分配）组成的列表（双向或单向链表）。Bins 根据其包含的块的大小被分为以下4类：</p>
+<ol>
+<li>Fast bin</li>
+<li>Unsorted bin</li>
+<li>Small bin</li>
+<li>Large bin</li>
+</ol>
+<p>Fast bins 使用以下方法声明：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-C" data-lang="C"><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> malloc_chunk <span style="color:#f92672">*</span>mfastbinptr;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>mfastbinptr fastbinsY[]; <span style="color:#75715e">// Array of pointers to chunks
+</span></span></span></code></pre></div><p>Unsorted、small和large Bins使用以下方式声明：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-C" data-lang="C"><span style="display:flex;"><span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> malloc_chunk<span style="color:#f92672">*</span> mchunkptr;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>mchunkptr bins[]; <span style="color:#75715e">// Array of pointers to chunks
+</span></span></span></code></pre></div><p>最初，在初始化过程中，small和large bin为空。每个bin由 bins 数组中的两个值表示，第一个值是指向“HEAD”的指针，第二个值是指向“TAIL”的指针。对于fast bin（单向链表），第二个值会设为 <code>NULL</code>。</p>
+<h3 id="fast-bins">Fast bins</h3>
+<p>共有10个fast bin，每一个bin都是一个单向链表，fast bins中的块叫做fast chunk。对链表的添加和删除操作都是从链表尾进行，遵循LIFO算法。</p>
+<p>每个bin中的chunk大小都是相同的。10 个bin中包含的chunk的大小有：16、24、32、40、48、56、64、72、80 和 88字节，此处提到的大小也包括元数据。在指针大小为 4 个字节的平台上，将会提供不超过4个字节的空间来存储chunk。该chunk的<code>prev_size</code>和<code>size</code>字段将保存已分配区块的元数据。下一个连续区块<code>prev_size</code>将保存用户数据。</p>
+<p>两个连续的空闲fast chunk不会合并在一起。</p>
+<h3 id="unsorted-bin">Unsorted bin</h3>
+<p>只有1个unsorted bin。在大型chunk或者小型chunk释放后，会进入这个bin当中。此 bin 的主要用途是充当缓存层（某种）以加快分配和取消分配请求的速度。</p>
+<h3 id="small-bins">Small bins</h3>
+<p>共有62个small bin，small bins的块就叫做small chunks。就内存的分配和释放速度而言，small bins的速度要比large bins快，但比fast bins慢。每一个small bin都是双向链表，采用FIFO（先入先出）算法，插入操作发生在“头部”，而删除发生在“尾部”（以FIFO方式）。</p>
+<p>与fast bins一样，每个small bin都有相同大小的chunk。62 个箱的大小为：16、24、&hellip;、504 字节，以8字节一次递进。</p>
+<p>在释放时，空闲的small chunk可能会合并在一起，然后最终进入unsorted bin。</p>
+<h3 id="large-bins">Large bins</h3>
+<p>共有63个large bin，每一个large bin都是双向链表。特定large bin中chunk的大小各不相同，其中chunk根据其大小降序排序（即最大的块在“HEAD”和最小的块在“TAIL”）。插入和删除操作可以发生在列表中的任何位置。<br>
+前 32 个bin中包含的chunk相距64个字节：<br>
+第一个bin：512-568字节<br>
+第二个bin：576-632字节<br>
+&hellip;</p>
+<p>总得来说就是：</p>
+<pre tabindex="0"><code>No. of Bins Spacing between bins
+
+64 bins of size       8  [ Small bins ]
+32 bins of size      64  [ Large bins ]
+16 bins of size     512  [ Large bins ]
+8 bins of size     4096  [ ...        ]
+4 bins of size    32768
+2 bins of size   262144
+1 bin  of size  what&#39;s left
+</code></pre><p>和small chunk一样，在释放时large chunk可能会合并在一起，然后进入unsorted bin。</p>
+<p>注意，有两种特殊类型的块不属于任何bin，分别是顶部块（top chunk）和最后剩余块（last remainder chunk）</p>
+<h3 id="top-chunk">Top chunk</h3>
+<p>Top chunk是位于Arena顶部的块。在为“malloc”请求提供服务时，它被用作最后的手段。可以使用 sbrk 系统调用指令来增大Top chunk的大小。Top chunk会被设置有 PREV_INUSE 标志。</p>
+<h3 id="last-remainder-chunk">Last remainder chunk</h3>
+<p>Last remainder chunk是从最后一次拆分中获得的块。有时，当较小的块不可用时，较大的块会分成两个部分，一部分返回给用户，另一部分会成为last remainder chunk。</p>
+<ul class="pa0">
+  
+</ul>
+<div class="mt6 instapaper_ignoref">
+      
+      
+      </div>
+    </div>
+
+    <aside class="w-30-l mt6-l">
+
+
+
+
+</aside>
+
+  </article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="http://example.org/" >
+    &copy;  new new new test 2023 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>
