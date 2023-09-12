@@ -10,7 +10,6 @@
 <meta property="og:url" content="/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
 <meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
-
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="heap基础 3/6: Bins 和 Chunks "/>
 <meta name="twitter:description" content="Bins和Chunks Bin 是由free chunk（未分配）组成的一个列表（双向或单向链表）。bins 根据其包含的块的大小被分为以下4类： Fast bin Unsorted"/>
@@ -100,14 +99,14 @@
 <li>Large bin</li>
 </ol>
 <p>Fast bins 使用以下方法声明：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="o">*</span><span class="n">mfastbinptr</span><span class="p">;</span>
-
-<span class="n">mfastbinptr</span> <span class="n">fastbinsY</span><span class="p">[];</span> <span class="c1">// Array of pointers to chunks
-</span></code></pre></div><p>Unsorted、small和large bins使用以下方式声明：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="o">*</span><span class="n">mchunkptr</span><span class="p">;</span> 
-
-<span class="n">mchunkptr</span> <span class="n">bins</span><span class="p">[];</span> <span class="c1">// Array of pointers to chunks
-</span></code></pre></div><p>最初，在初始化过程中，small和large bin为空。每个bin由 bin 数组中的两个值表示，第一个值是指向“HEAD”的指针，第二个值是指向“TAIL”的指针。对于fast bin（单向链表），第二个值会设为 <code>NULL</code>。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="o">*</span><span class="n">mfastbinptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">mfastbinptr</span> <span class="n">fastbinsY</span><span class="p">[];</span> <span class="c1">// Array of pointers to chunks
+</span></span></span></code></pre></div><p>Unsorted、small和large bins使用以下方式声明：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="o">*</span><span class="n">mchunkptr</span><span class="p">;</span> 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">mchunkptr</span> <span class="n">bins</span><span class="p">[];</span> <span class="c1">// Array of pointers to chunks
+</span></span></span></code></pre></div><p>最初，在初始化过程中，small和large bin为空。每个bin由 bin 数组中的两个值表示，第一个值是指向“HEAD”的指针，第二个值是指向“TAIL”的指针。对于fast bin（单向链表），第二个值会设为 <code>NULL</code>。</p>
 <h3 id="fast-bins">Fast bins</h3>
 <p>共有10个fast bin，每一个bin都是一个单向链表，对链表的添加和删除操作都是从链表头进行，遵循LIFO算法。</p>
 <p>每个bin中的chunk大小都是相同的。10 个bin中包含的chunk的大小有：16、24、32、40、48、56、64、72、80 和 88字节，此处提到的大小也包括元数据。在指针大小为 4 个字节的平台上，将会提供不超过4个字节的空间来存储chunk。该chunk的<code>prev_size</code>和<code>size</code>字段将保存已分配区块的元数据。下一个连续区块<code>prev_size</code>将保存用户数据。</p>
@@ -125,16 +124,16 @@
 第二个bin：576-632字节<br>
 &hellip;</p>
 <p>总得来说就是：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="n">No</span><span class="p">.</span> <span class="n">of</span> <span class="n">Bins</span> <span class="n">Spacing</span> <span class="n">between</span> <span class="n">bins</span>
-
-<span class="mi">64</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>       <span class="mi">8</span>  <span class="p">[</span> <span class="n">Small</span> <span class="n">bins</span> <span class="p">]</span>
-<span class="mi">32</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>      <span class="mi">64</span>  <span class="p">[</span> <span class="n">Large</span> <span class="n">bins</span> <span class="p">]</span>
-<span class="mi">16</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>     <span class="mi">512</span>  <span class="p">[</span> <span class="n">Large</span> <span class="n">bins</span> <span class="p">]</span>
-<span class="mi">8</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>     <span class="mi">4096</span>  <span class="p">[</span> <span class="p">...</span>        <span class="p">]</span>
-<span class="mi">4</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>    <span class="mi">32768</span>
-<span class="mi">2</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>   <span class="mi">262144</span>
-<span class="mi">1</span> <span class="n">bin</span>  <span class="n">of</span> <span class="n">size</span>  <span class="n">what</span><span class="err">&#39;</span><span class="n">s</span> <span class="n">left</span>
-</code></pre></div><p>和small chunk一样，在释放时large chunk可能会合并在一起，然后进入unsorted bin。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl"><span class="n">No</span><span class="p">.</span> <span class="n">of</span> <span class="n">Bins</span> <span class="n">Spacing</span> <span class="n">between</span> <span class="n">bins</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="mi">64</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>       <span class="mi">8</span>  <span class="p">[</span> <span class="n">Small</span> <span class="n">bins</span> <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="mi">32</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>      <span class="mi">64</span>  <span class="p">[</span> <span class="n">Large</span> <span class="n">bins</span> <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="mi">16</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>     <span class="mi">512</span>  <span class="p">[</span> <span class="n">Large</span> <span class="n">bins</span> <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="mi">8</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>     <span class="mi">4096</span>  <span class="p">[</span> <span class="p">...</span>        <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="mi">4</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>    <span class="mi">32768</span>
+</span></span><span class="line"><span class="cl"><span class="mi">2</span> <span class="n">bins</span> <span class="n">of</span> <span class="n">size</span>   <span class="mi">262144</span>
+</span></span><span class="line"><span class="cl"><span class="mi">1</span> <span class="n">bin</span>  <span class="n">of</span> <span class="n">size</span>  <span class="n">what</span><span class="err">&#39;</span><span class="n">s</span> <span class="n">left</span>
+</span></span></code></pre></div><p>和small chunk一样，在释放时large chunk可能会合并在一起，然后进入unsorted bin。</p>
 <blockquote>
 <p><strong>注意</strong>，有两种特殊类型的块不属于任何bin，分别是顶部块（top chunk）和最后剩余块（last remainder chunk）</p>
 </blockquote>
@@ -168,7 +167,7 @@
 </div>
 </article></div>
             </main><footer class="footer">
-        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.118.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
                 </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
         </div>
     </footer></div>

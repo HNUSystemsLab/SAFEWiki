@@ -10,14 +10,13 @@
 <meta property="og:url" content="/posts/1-heap%E5%9F%BA%E7%A1%80/01-heap%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5_v3.0/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
 <meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
-
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="heap基础 new "/>
 <meta name="twitter:description" content="1 重要概念-arena、chunks、bins 当开发人员使用各种基于栈的漏洞缓解措施时，攻击者通常使用堆相关漏洞（如use-after-fr"/>
 <meta name="application-name" content="湖南大学安全Wiki">
 <meta name="apple-mobile-web-app-title" content="湖南大学安全Wiki"><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="../../../favicon.ico" />
         <link rel="icon" type="image/png" sizes="32x32" href="../../../favicon-32x32.png">
-        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/01-heap%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5_v3.0/" /><link rel="prev" href="../../../posts/2-linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8/linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8-part-1/" /><link rel="next" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <link rel="icon" type="image/png" sizes="16x16" href="../../../favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="../../../apple-touch-icon.png"><link rel="mask-icon" href="../../../safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="../../../site.webmanifest"><link rel="canonical" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/01-heap%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5_v3.0/" /><link rel="prev" href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A81-first-fit/" /><link rel="next" href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" /><link rel="stylesheet" href="../../../css/style.min.css"><link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
         <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css"></noscript><link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
         <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css"></noscript><script type="application/ld+json">
     {
@@ -99,19 +98,19 @@
 <p>在c/c++中，系统分配内存是在堆上进行的，程序刚开始执行时，每个线程并没有heap区域，只有当其申请内存时，会使用一个结构<code>heap_info</code>来记录其申请的heap空间的信息。当申请的heap的资源被使用完后，必须再次申请内存。（此处的 heap 并非广义上的进程的虚拟内存空间中的堆，而是线程通过系统调用<code>mmap</code>从操作系统申请的一块内存空间。）</p>
 <p>在glibc中，<code>heap_info</code>结构被用来表示堆空间的具体信息，例如指定堆的大小、提供堆对应的arena的地址，也称为 heap header。此外，一般申请的heap空间是不连续的，因此<code>heap_info</code>还记录了不同heap之间的链接结构。</p>
 <p><code>heap_info</code>结构的声明如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_heap_info</span>
-<span class="p">{</span>
-  <span class="n">mstate</span> <span class="n">ar_ptr</span><span class="p">;</span>            <span class="cm">/* Arena for this heap. */</span>
-  <span class="k">struct</span> <span class="n">_heap_info</span> <span class="o">*</span><span class="n">prev</span><span class="p">;</span>  <span class="cm">/* Previous heap. */</span>
-  <span class="n">size_t</span> <span class="n">size</span><span class="p">;</span>              <span class="cm">/* Current size in bytes. */</span>
-  <span class="n">size_t</span> <span class="n">mprotect_size</span><span class="p">;</span>     <span class="cm">/* Size in bytes that has been mprotected
-</span><span class="cm">                             PROT_READ|PROT_WRITE.  */</span>
-  <span class="cm">/* Make sure the following data is properly aligned, particularly
-</span><span class="cm">     that sizeof (heap_info) + 2 * SIZE_SZ is a multiple of
-</span><span class="cm">     MALLOC_ALIGNMENT. */</span>
-  <span class="kt">char</span> <span class="n">pad</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span> <span class="o">*</span> <span class="n">SIZE_SZ</span> <span class="o">&amp;</span> <span class="n">MALLOC_ALIGN_MASK</span><span class="p">];</span>
-<span class="p">}</span>
-</code></pre></div><p>具体说明：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_heap_info</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">mstate</span> <span class="n">ar_ptr</span><span class="p">;</span>            <span class="cm">/* Arena for this heap. */</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">_heap_info</span> <span class="o">*</span><span class="n">prev</span><span class="p">;</span>  <span class="cm">/* Previous heap. */</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">size_t</span> <span class="n">size</span><span class="p">;</span>              <span class="cm">/* Current size in bytes. */</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">size_t</span> <span class="n">mprotect_size</span><span class="p">;</span>     <span class="cm">/* Size in bytes that has been mprotected
+</span></span></span><span class="line"><span class="cl"><span class="cm">                             PROT_READ|PROT_WRITE.  */</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Make sure the following data is properly aligned, particularly
+</span></span></span><span class="line"><span class="cl"><span class="cm">     that sizeof (heap_info) + 2 * SIZE_SZ is a multiple of
+</span></span></span><span class="line"><span class="cl"><span class="cm">     MALLOC_ALIGNMENT. */</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">pad</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span> <span class="o">*</span> <span class="n">SIZE_SZ</span> <span class="o">&amp;</span> <span class="n">MALLOC_ALIGN_MASK</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>具体说明：</p>
 <ul>
 <li><code>mstate ar_ptr</code>：指向arena的指针，一个<code>heap_info</code>只对应一个arena。</li>
 <li><code>struct _heap_info *ptr</code>：指向前一个<code>heap_info</code>结构的指针，分配的所有<code>heap_info</code>结构构成一个循环链表。</li>
@@ -130,24 +129,24 @@
 <h4 id="121-malloc_state">1.2.1 malloc_state</h4>
 <p>arena用数据结构<code>malloc_state</code>来表示，<code>malloc_state</code>记录了每个arena当前申请内存的具体状态，比如说是否有空闲chunk，有什么大小的空闲chunk等等，也被称为arena header。</p>
 <p><code>malloc_state</code>结构的声明如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C">
-<span class="k">struct</span> <span class="n">malloc_state</span> <span class="p">{</span>
- <span class="n">mutex_t</span> <span class="n">mutex</span><span class="p">;</span>                 <span class="cm">/* Serialize access. */</span>
- <span class="kt">int</span> <span class="n">flags</span><span class="p">;</span>                       <span class="cm">/* Flags (formerly in max_fast). */</span>
- <span class="cp">#if THREAD_STATS
-</span><span class="cp"></span> <span class="cm">/* Statistics for locking. Only used if THREAD_STATS is defined. */</span>
- <span class="kt">long</span> <span class="n">stat_lock_direct</span><span class="p">,</span> <span class="n">stat_lock_loop</span><span class="p">,</span> <span class="n">stat_lock_wait</span><span class="p">;</span>
- <span class="cp">#endif
-</span><span class="cp"></span> <span class="n">mfastbinptr</span> <span class="n">fastbins</span><span class="p">[</span><span class="n">NFASTBINS</span><span class="p">];</span>    <span class="cm">/* Fastbins */</span>
- <span class="n">mchunkptr</span> <span class="n">top</span><span class="p">;</span>
- <span class="n">mchunkptr</span> <span class="n">last_remainder</span><span class="p">;</span>
- <span class="n">mchunkptr</span> <span class="n">bins</span><span class="p">[</span><span class="n">NBINS</span> <span class="o">*</span> <span class="mi">2</span><span class="p">];</span>
- <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">binmap</span><span class="p">[</span><span class="n">BINMAPSIZE</span><span class="p">];</span>   <span class="cm">/* Bitmap of bins */</span>
- <span class="k">struct</span> <span class="n">malloc_state</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>           <span class="cm">/* Linked list */</span>
- <span class="n">INTERNAL_SIZE_T</span> <span class="n">system_mem</span><span class="p">;</span>
- <span class="n">INTERNAL_SIZE_T</span> <span class="n">max_system_mem</span><span class="p">;</span>
- <span class="p">};</span>
-</code></pre></div><p>具体说明：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">malloc_state</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"> <span class="kt">mutex_t</span> <span class="n">mutex</span><span class="p">;</span>                 <span class="cm">/* Serialize access. */</span>
+</span></span><span class="line"><span class="cl"> <span class="kt">int</span> <span class="n">flags</span><span class="p">;</span>                       <span class="cm">/* Flags (formerly in max_fast). */</span>
+</span></span><span class="line"><span class="cl"> <span class="cp">#if THREAD_STATS
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span> <span class="cm">/* Statistics for locking. Only used if THREAD_STATS is defined. */</span>
+</span></span><span class="line"><span class="cl"> <span class="kt">long</span> <span class="n">stat_lock_direct</span><span class="p">,</span> <span class="n">stat_lock_loop</span><span class="p">,</span> <span class="n">stat_lock_wait</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"> <span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span> <span class="n">mfastbinptr</span> <span class="n">fastbins</span><span class="p">[</span><span class="n">NFASTBINS</span><span class="p">];</span>    <span class="cm">/* Fastbins */</span>
+</span></span><span class="line"><span class="cl"> <span class="n">mchunkptr</span> <span class="n">top</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"> <span class="n">mchunkptr</span> <span class="n">last_remainder</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"> <span class="n">mchunkptr</span> <span class="n">bins</span><span class="p">[</span><span class="n">NBINS</span> <span class="o">*</span> <span class="mi">2</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">binmap</span><span class="p">[</span><span class="n">BINMAPSIZE</span><span class="p">];</span>   <span class="cm">/* Bitmap of bins */</span>
+</span></span><span class="line"><span class="cl"> <span class="k">struct</span> <span class="n">malloc_state</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>           <span class="cm">/* Linked list */</span>
+</span></span><span class="line"><span class="cl"> <span class="n">INTERNAL_SIZE_T</span> <span class="n">system_mem</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"> <span class="n">INTERNAL_SIZE_T</span> <span class="n">max_system_mem</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"> <span class="p">};</span>
+</span></span></code></pre></div><p>具体说明：</p>
 <ul>
 <li><strong><code>mutex_t mutex</code></strong>：用于确保对 ptmalloc 实现采用的各种数据结构的同步访问，通常在调用<code>_int_XXX()</code>函数之前获得，例如，在调用<code>free()</code>时，实际上是在调用<code>public_free()</code>，它锁定互斥锁并调用<code>_int_free()</code>；</li>
 <li><strong><code>int flags</code></strong>：用于表示当前arena的各种特征，例如是否有fastbin chunks，内存是否非连续等等。</li>
@@ -165,11 +164,11 @@
 </ul>
 <h4 id="122-arena数量">1.2.2 arena数量</h4>
 <p>需要注意的是，非主arena是通过<code>mmap</code>向os申请内存，一次申请64MB，一旦申请了，该arena就不会被释放，为了避免资源浪费，ptmalloc对arena是有个数限制的。对于不同系统，arena 数量的约束如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C">    <span class="n">For</span> <span class="mi">32</span> <span class="n">bit</span> <span class="nl">systems</span><span class="p">:</span>
-        <span class="n">Number</span> <span class="n">of</span> <span class="n">arena</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">number</span> <span class="n">of</span> <span class="n">cores</span><span class="p">.</span>
-    <span class="n">For</span> <span class="mi">64</span> <span class="n">bit</span> <span class="nl">systems</span><span class="p">:</span>
-        <span class="n">Number</span> <span class="n">of</span> <span class="n">arena</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">number</span> <span class="n">of</span> <span class="n">cores</span><span class="p">.</span>
-</code></pre></div><p>即，arena对于32位系统，数量最多为核心数量2倍，64位则最多为核心数量8倍，可以用来保证多线程的堆空间分配的高效性。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl">    <span class="n">For</span> <span class="mi">32</span> <span class="n">bit</span> <span class="nl">systems</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Number</span> <span class="n">of</span> <span class="n">arena</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">number</span> <span class="n">of</span> <span class="n">cores</span><span class="p">.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">For</span> <span class="mi">64</span> <span class="n">bit</span> <span class="nl">systems</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Number</span> <span class="n">of</span> <span class="n">arena</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">number</span> <span class="n">of</span> <span class="n">cores</span><span class="p">.</span>
+</span></span></code></pre></div><p>即，arena对于32位系统，数量最多为核心数量2倍，64位则最多为核心数量8倍，可以用来保证多线程的堆空间分配的高效性。</p>
 <h4 id="123-arena的分配原则">1.2.3 arena的分配原则</h4>
 <p>每一个进程只有一个主arena和若干个非主arena，<strong>主arena和非主arena用环形链表连接起来</strong>。每个线程一定对应一个arena，但是因为每个程序中arnea的数量是有限制的。当arena满了之后就不再创建，子线程需要与其他线程共享一个arena（不包含主arena），也就是说，<code>malloc</code>会通过系统调用<code>mmap</code>为该线程申请新的heap（这部分空间本来是位于内存映射区区域），新的heap会被添加到当前<code>thread_arena</code>中，<strong>同一个arena下的堆以链表方式进行连接</strong>。分配原则如下:</p>
 <ul>
@@ -214,18 +213,18 @@
 <p>chunk 在内存中可以理解为是用来表示一块内存。为了便于管理和更加高效的利用内存，一个 heap 被分为多个chunk，每个 chunk 的大小不是固定，具体由用户的请求决定的，可以大概理解为，用户调用<code>malloc(size_t size)</code>传递的<code>size</code>参数就是 chunk 的大小(只是便于理解，这种表述并不准确)。用户调用<code>free()</code>函数释放的内存，也并不是立即归还给操作系统，它们也会被表示为一个 chunk。</p>
 <h4 id="131-malloc_chunk">1.3.1 malloc_chunk</h4>
 <p>chunk的结构用<code>malloc_chunk</code>来表示，<code>malloc_chunk</code>结构的声明如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="p">{</span>  
-  <span class="n">INTERNAL_SIZE_T</span>      <span class="n">prev_size</span><span class="p">;</span>    <span class="cm">/* Size of previous chunk (if free).  */</span>  
-  <span class="n">INTERNAL_SIZE_T</span>      <span class="n">size</span><span class="p">;</span>         <span class="cm">/* Size in bytes, including overhead. */</span>  
-  
-  <span class="k">struct</span> <span class="n">malloc_chunk</span><span class="o">*</span> <span class="n">fd</span><span class="p">;</span>           <span class="cm">/* double links -- used only if free. */</span>  
-  <span class="k">struct</span> <span class="n">malloc_chunk</span><span class="o">*</span> <span class="n">bk</span><span class="p">;</span>  
-  
-  <span class="cm">/* Only used for large blocks: pointer to next larger size.  */</span>  
-  <span class="k">struct</span> <span class="n">malloc_chunk</span><span class="o">*</span> <span class="n">fd_nextsize</span><span class="p">;</span>      <span class="cm">/* double links -- used only if free. */</span>  
-  <span class="k">struct</span> <span class="n">malloc_chunk</span><span class="o">*</span> <span class="n">bk_nextsize</span><span class="p">;</span> 
-<span class="p">};</span>  
-</code></pre></div><p>具体说明：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">  <span class="n">INTERNAL_SIZE_T</span>      <span class="n">prev_size</span><span class="p">;</span>    <span class="cm">/* Size of previous chunk (if free).  */</span>  
+</span></span><span class="line"><span class="cl">  <span class="n">INTERNAL_SIZE_T</span>      <span class="n">size</span><span class="p">;</span>         <span class="cm">/* Size in bytes, including overhead. */</span>  
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">malloc_chunk</span><span class="o">*</span> <span class="n">fd</span><span class="p">;</span>           <span class="cm">/* double links -- used only if free. */</span>  
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">malloc_chunk</span><span class="o">*</span> <span class="n">bk</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Only used for large blocks: pointer to next larger size.  */</span>  
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">malloc_chunk</span><span class="o">*</span> <span class="n">fd_nextsize</span><span class="p">;</span>      <span class="cm">/* double links -- used only if free. */</span>  
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">malloc_chunk</span><span class="o">*</span> <span class="n">bk_nextsize</span><span class="p">;</span> 
+</span></span><span class="line"><span class="cl"><span class="p">};</span>  
+</span></span></code></pre></div><p>具体说明：</p>
 <ul>
 <li><strong><code>INTERNAL_SIZE_T prev_size</code></strong>：代表前一个chunk的大小，具体细节见1.3.2。</li>
 <li><strong><code>INTERNAL_SIZE_T size:</code></strong>：当前区块的大小，用于遍历分配的区块。</li>
@@ -289,9 +288,9 @@
 <h4 id="141-fast-bin">1.4.1 fast bin</h4>
 <p>fast bin是在其他三种bins基础上的优化体现。程序在运行时会经常需要申请和释放一些较小的内存空间。当分配器合并了相邻的几个小的chunk之后，也许会马上收到另一个对小chunk的请求，这样分配器又需要从大的空闲内存中切分出一个小chunk，这样无疑是低效率的，因此，引入了fast bin。fast bin的本质是将最近释放的小chunk存储在bin中，而不将这些chunk与其邻居合并，以便之后收到对小chunk的请求时，能够立即进行分配。
 在前面<code>malloc_state</code>中，可以看到fast bin是这样维护的：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="o">*</span><span class="n">mfastbinptr</span><span class="p">;</span>
-<span class="n">mfastbinptr</span> <span class="n">fastbinsY</span><span class="p">[</span><span class="n">NFASTBINS</span><span class="p">];</span> <span class="c1">// Array of pointers to chunks
-</span></code></pre></div><ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_chunk</span> <span class="o">*</span><span class="n">mfastbinptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">mfastbinptr</span> <span class="n">fastbinsY</span><span class="p">[</span><span class="n">NFASTBINS</span><span class="p">];</span> <span class="c1">// Array of pointers to chunks
+</span></span></span></code></pre></div><ol>
 <li>fast bin的默认个数是10个，即fastbinsY的长度为10，<code>NFASTBINS=10</code>。</li>
 <li>bin中的每一个元素维护一个单链表，添加、删除chunk遵循LIFO（后进先出），即操作都是在链表的头部进行的。</li>
 <li>每个bin链表中chunk大小相同。10个fast bin链表中chunk的大小以8字节递增：即第一个fast bin链表中的chunk大小为16字节，第二个fast bin链表中的chunk大小为24字节，依此类推，最后一个fasta bin链表中的chunk大小是88字节。（大小包括元数据）</li>
@@ -345,24 +344,24 @@
 <p>glibc中为了防止线程之间共享堆而出现问题，在每一个线程调用malloc时都会创建一个新的arena，但是如<a href="#122-arena%e6%95%b0%e9%87%8f" rel="">1.2.2</a>和<a href="#123-arena%e7%9a%84%e5%88%86%e9%85%8d%e5%8e%9f%e5%88%99" rel="">1.2.3</a>所述，arena的数量是有限制的，如果超过了阈值，多出的线程就需要共享堆。为了解决这些线程的同步问题，堆管理器增加了锁的机制，这就导致一部分的线程在运行时可能会被阻塞，需要等待其他的线程使用完堆之后才能使用。这会占用程序执行的大量时间，为了对此进行优化，tcache被引入。</p>
 <h5 id="2tcache-bin">2）tcache bin</h5>
 <p><strong>相关数据结构</strong>：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cm">/* We overlay this structure on the user-data portion of a chunk when
-</span><span class="cm">   the chunk is stored in the per-thread cache.  */</span>
-<span class="k">typedef</span> <span class="k">struct</span> <span class="n">tcache_entry</span>
-<span class="p">{</span>
-  <span class="k">struct</span> <span class="n">tcache_entry</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">tcache_entry</span><span class="p">;</span>
-
-<span class="cm">/* There is one of these for each thread, which contains the
-</span><span class="cm">   per-thread cache (hence &#34;tcache_perthread_struct&#34;).  Keeping
-</span><span class="cm">   overall size low is mildly important.  Note that COUNTS and ENTRIES
-</span><span class="cm">   are redundant (we could have just counted the linked list each
-</span><span class="cm">   time), this is for performance reasons.  */</span>
-<span class="k">typedef</span> <span class="k">struct</span> <span class="n">tcache_perthread_struct</span>
-<span class="p">{</span>
-  <span class="kt">char</span> <span class="n">counts</span><span class="p">[</span><span class="n">TCACHE_MAX_BINS</span><span class="p">];</span>
-  <span class="n">tcache_entry</span> <span class="o">*</span><span class="n">entries</span><span class="p">[</span><span class="n">TCACHE_MAX_BINS</span><span class="p">];</span>
-<span class="p">}</span> <span class="n">tcache_perthread_struct</span><span class="p">;</span>
-</code></pre></div><p><code>tcache_entry</code>用于链接空闲的chunk，存放chunk的user data部分，并指向下一个<code>tcache_entry</code>，因此<code>next</code>指向的就直接是user data的开始，也对应chunk的<code>fd</code>指针。
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cm">/* We overlay this structure on the user-data portion of a chunk when
+</span></span></span><span class="line"><span class="cl"><span class="cm">   the chunk is stored in the per-thread cache.  */</span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">tcache_entry</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">tcache_entry</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">tcache_entry</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cm">/* There is one of these for each thread, which contains the
+</span></span></span><span class="line"><span class="cl"><span class="cm">   per-thread cache (hence &#34;tcache_perthread_struct&#34;).  Keeping
+</span></span></span><span class="line"><span class="cl"><span class="cm">   overall size low is mildly important.  Note that COUNTS and ENTRIES
+</span></span></span><span class="line"><span class="cl"><span class="cm">   are redundant (we could have just counted the linked list each
+</span></span></span><span class="line"><span class="cl"><span class="cm">   time), this is for performance reasons.  */</span>
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">tcache_perthread_struct</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">counts</span><span class="p">[</span><span class="n">TCACHE_MAX_BINS</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">  <span class="n">tcache_entry</span> <span class="o">*</span><span class="n">entries</span><span class="p">[</span><span class="n">TCACHE_MAX_BINS</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">tcache_perthread_struct</span><span class="p">;</span>
+</span></span></code></pre></div><p><code>tcache_entry</code>用于链接空闲的chunk，存放chunk的user data部分，并指向下一个<code>tcache_entry</code>，因此<code>next</code>指向的就直接是user data的开始，也对应chunk的<code>fd</code>指针。
 <code>tcache_perthread_struct</code>是整个tcache机制的管理结构，每个线程都会维护一个<code>tcache_perthread_struct</code>，其中包含<code>TCACHE_MAX_BINS</code>个<code>tcache_entry</code>链表，链表中的每个chunk大小相同，所以也称其为tcahce bin。其特性如下：</p>
 <ol>
 <li>每个tcache bin是一个单链表结构，最多包含7个chunk。</li>
@@ -425,12 +424,12 @@
         </section>
     </div>
 
-    <div class="post-nav"><a href="../../../posts/2-linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8/linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8-part-1/" class="prev" rel="prev" title="Linux内核利用 part 1"><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>Linux内核利用 part 1</a>
+    <div class="post-nav"><a href="../../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A81-first-fit/" class="prev" rel="prev" title="heap利用 1/9: First Fit"><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>heap利用 1/9: First Fit</a>
             <a href="../../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/" class="next" rel="next" title="heap基础 5/6: Core Functions核心函数 ">heap基础 5/6: Core Functions核心函数 <i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
 </div>
 </article></div>
             </main><footer class="footer">
-        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.118.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
                 </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
         </div>
     </footer></div>

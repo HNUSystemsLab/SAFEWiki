@@ -1,7 +1,7 @@
 {
 	"version": 3,
 	"file": "style.min.css",
-	"sourceRoot": "/mnt/c/Users/daoku/Desktop/hugo/hugo-demo",
+	"sourceRoot": "/Users/daokun/workspace/SAFEWiki",
 	"sources": [
 		"themes/LoveIt/assets/css/style.scss",
 		"themes/LoveIt/assets/lib/normalize/normalize.css",

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
     <head>
-	<meta name="generator" content="Hugo 0.92.2" />
+	<meta name="generator" content="Hugo 0.118.2">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="robots" content="noodp" />
@@ -9,7 +9,6 @@
 <meta property="og:description" content="分享安全技术" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="/" /><meta property="og:site_name" content="湖南大学安全Wiki" />
-
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="安全维基"/>
 <meta name="twitter:description" content="分享安全技术"/>
@@ -59,30 +58,30 @@
 </header><main class="main">
                 <div class="container"><div class="page home" data-home="posts"><div class="home-profile"><div class="home-subtitle"><div id="id-1" class="typeit"></div></div><div class="links"></div></div>
 <article class="single summary" itemscope itemtype="http://schema.org/Article"><h1 class="single-title" itemprop="name headline">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%802-malloc_state/">heap基础 2/6: malloc_state</a>
-    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%9F%BA%E7%A1%80/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap基础</a></span></div><div class="content">malloc_state malloc_state展示了Arena标头的详细信息。主线程的Arena是一个全局变量，而不是heap段的一部分。其他线程的 Arena 标头（ma</div><div class="post-footer">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%802-malloc_state/">阅读全文</a><div class="post-tags">
-                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%9F%BA%E7%A1%80/">heap基础</a></div></div>
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/">heap利用 5/9: Shrinking Free Chunks</a>
+    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%88%A9%E7%94%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap利用</a></span></div><div class="content">“Glibc Adventures: The Forgotten Chunk”中描述了Shrinking Free Chunks攻击，其因利用了单字节堆溢出（通常由于 &lsquo;off by one&rsquo; 而被发现。这种攻击的目标是</div><div class="post-footer">
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A85-shrinking-free-chunks/">阅读全文</a><div class="post-tags">
+                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%88%A9%E7%94%A8/">heap利用</a></div></div>
 </article><article class="single summary" itemscope itemtype="http://schema.org/Article"><h1 class="single-title" itemprop="name headline">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/">heap基础 3/6: Bins 和 Chunks </a>
-    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%9F%BA%E7%A1%80/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap基础</a></span></div><div class="content">Bins和Chunks Bin 是由free chunk（未分配）组成的一个列表（双向或单向链表）。bins 根据其包含的块的大小被分为以下4类： Fast bin Unsorted</div><div class="post-footer">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%803-bins-and-chunks/">阅读全文</a><div class="post-tags">
-                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%9F%BA%E7%A1%80/">heap基础</a></div></div>
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A86-house-of-spirit/">heap利用 6/9: House of Spirit</a>
+    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%88%A9%E7%94%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap利用</a></span></div><div class="content">1. 概述 House of Spirit 与其他攻击稍有不同，表现为攻击者是在chunk被free之前覆盖现有指针。具体方法是：攻击者创建一个 fake chunk，它可以驻留在内</div><div class="post-footer">
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A86-house-of-spirit/">阅读全文</a><div class="post-tags">
+                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%88%A9%E7%94%A8/">heap利用</a></div></div>
 </article><article class="single summary" itemscope itemtype="http://schema.org/Article"><h1 class="single-title" itemprop="name headline">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/">heap基础 4/6: Internal Functions内部函数 </a>
-    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%9F%BA%E7%A1%80/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap基础</a></span></div><div class="content">Internal Function内部函数 这是内部使用的一些常用函数的列表。要注意的是，某些函数实际上是使用 #define 指令定义的。因此，对调用参数的更改实际上在调用</div><div class="post-footer">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%804-internal-functions/">阅读全文</a><div class="post-tags">
-                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%9F%BA%E7%A1%80/">heap基础</a></div></div>
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A87-house-of-lore/">heap利用 7/9: House of Lore</a>
+    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%88%A9%E7%94%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap利用</a></span></div><div class="content">这种攻击基本上是针对small bins和large bins伪造chunk。然而，由于在2007年左右增强了对large bins的保护(引入了</div><div class="post-footer">
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A87-house-of-lore/">阅读全文</a><div class="post-tags">
+                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%88%A9%E7%94%A8/">heap利用</a></div></div>
 </article><article class="single summary" itemscope itemtype="http://schema.org/Article"><h1 class="single-title" itemprop="name headline">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/">heap基础 5/6: Core Functions核心函数 </a>
-    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%9F%BA%E7%A1%80/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap基础</a></span></div><div class="content">核心函数 说明： void *_init_malloc(mstate av,size_t bytes) 1.更新bytes以处理对齐等。 2.检查av是否为NULL。 3.在没有可用分区的情况下（av为NULL），调用sysm</div><div class="post-footer">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%805-core-functions/">阅读全文</a><div class="post-tags">
-                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%9F%BA%E7%A1%80/">heap基础</a></div></div>
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A88-house-of-force/">heap利用 8/9: House of Force</a>
+    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%88%A9%E7%94%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap利用</a></span></div><div class="content">本攻击与 “House of Lore” 类似，重点是利用 malloc 返回任意指针。Forging chunks攻击主要是针对fastbins，而 “House of L</div><div class="post-footer">
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A88-house-of-force/">阅读全文</a><div class="post-tags">
+                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%88%A9%E7%94%A8/">heap利用</a></div></div>
 </article><article class="single summary" itemscope itemtype="http://schema.org/Article"><h1 class="single-title" itemprop="name headline">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/01-heap%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5_v3.0/">heap基础 new </a>
-    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%9F%BA%E7%A1%801/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap基础1</a></span></div><div class="content">1 重要概念-arena、chunks、bins 当开发人员使用各种基于栈的漏洞缓解措施时，攻击者通常使用堆相关漏洞（如use-after-fr</div><div class="post-footer">
-        <a href="../../posts/1-heap%E5%9F%BA%E7%A1%80/01-heap%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5_v3.0/">阅读全文</a><div class="post-tags">
-                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%9F%BA%E7%A1%801/">heap基础1</a></div></div>
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A89-house-of-einherjar/">heap利用 9/9: House of Einherjar</a>
+    </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/heap%E5%88%A9%E7%94%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap利用</a></span></div><div class="content">1. 概述 这个house不是&quot;The Malloc Maleficarum&quot;的一部分。这种堆利用技术由Hiroki Matsukuma于20</div><div class="post-footer">
+        <a href="../../posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A89-house-of-einherjar/">阅读全文</a><div class="post-tags">
+                <i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="../../tags/heap%E5%88%A9%E7%94%A8/">heap利用</a></div></div>
 </article><article class="single summary" itemscope itemtype="http://schema.org/Article"><h1 class="single-title" itemprop="name headline">
         <a href="../../posts/2-linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8/linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8-part-1/">Linux内核利用 part 1</a>
     </h1><div class="post-meta"><span class="post-author"><a href="../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-publish">发布于 <time datetime="2023-02-05">2023-02-05</time></span>&nbsp;<span class="post-category">收录于 <a href="../../categories/%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>内核利用</a></span></div><div class="content">前言 在本系列中，我将介绍过去几周学习的Linux内核利用的一些基本内容：从基本环境配置到流行的Linux内核保护措施，以及相应的利用技术。 当</div><div class="post-footer">
@@ -110,7 +109,7 @@
                     </span>
                 </li></ul></div></div>
             </main><footer class="footer">
-        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.118.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
                 </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../" target="_blank">admin</a></span></div>
         </div>
     </footer></div>

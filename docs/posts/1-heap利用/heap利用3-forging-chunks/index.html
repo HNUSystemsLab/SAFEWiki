@@ -10,7 +10,6 @@
 <meta property="og:url" content="/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A83-forging-chunks/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
 <meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
-
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="heap利用 3/9: Forging Chunks"/>
 <meta name="twitter:description" content="chunk被free后，会被插入到一个bin链表中，但是chunk对应的指针在程序中仍然可用。如果攻击者能够控制此指针，那么它就可以修改bi"/>
@@ -28,7 +27,7 @@
         "mainEntityOfPage": {
             "@type": "WebPage",
             "@id": "\/posts\/1-heap%E5%88%A9%E7%94%A8\/heap%E5%88%A9%E7%94%A83-forging-chunks\/"
-        },"genre": "posts","keywords": "heap利用","wordcount":  947 ,
+        },"genre": "posts","keywords": "heap利用","wordcount":  953 ,
         "url": "\/posts\/1-heap%E5%88%A9%E7%94%A8\/heap%E5%88%A9%E7%94%A83-forging-chunks\/","datePublished": "2023-02-05T15:36:08+08:00","dateModified": "2023-02-05T15:36:08+08:00","publisher": {
             "@type": "Organization",
             "name": ""},"author": {
@@ -70,7 +69,7 @@
             <div class="toc-content" id="toc-content-auto"></div>
         </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">heap利用 3/9: Forging Chunks</h1><div class="post-meta">
             <div class="post-meta-line"><span class="post-author"><a href="../../../" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>admin</a></span>&nbsp;<span class="post-category">收录于 <a href="../../../categories/heap%E5%88%A9%E7%94%A8/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>heap利用</a></span></div>
-            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2023-02-05">2023-02-05</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 947 字&nbsp;
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2023-02-05">2023-02-05</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;约 953 字&nbsp;
                 <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;预计阅读 2 分钟&nbsp;</div>
         </div><div class="details toc" id="toc-static"  data-kept="">
                 <div class="details-summary toc-title">
@@ -80,34 +79,34 @@
                 <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents"></nav></div>
             </div><div class="content" id="content"><p>chunk被free后，会被插入到一个bin链表中，但是chunk对应的指针在程序中仍然可用。如果攻击者能够控制此指针，那么它就可以修改bin中的链表结构，从而插入攻击者自己伪造的chunk，这就是forging chunks利用。下面的示例程序展示了fast bin的情况下是如何实现伪造chunk的。</p>
 <p><strong>示例程序</strong></p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">struct</span> <span class="n">forged_chunk</span> <span class="p">{</span>
-  <span class="n">size_t</span> <span class="n">prev_size</span><span class="p">;</span>
-  <span class="n">size_t</span> <span class="n">size</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">forged_chunk</span> <span class="o">*</span><span class="n">fd</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">forged_chunk</span> <span class="o">*</span><span class="n">bck</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>               <span class="c1">// padding
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="c1">// First grab a fast chunk
-</span><span class="c1"></span><span class="n">a</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>               <span class="c1">// &#39;a&#39; points to 0x219c010
-</span><span class="c1"></span>
-<span class="c1">// Create a forged chunk
-</span><span class="c1"></span><span class="k">struct</span> <span class="n">forged_chunk</span> <span class="n">chunk</span><span class="p">;</span>    <span class="c1">// At address 0x7ffc6de96690
-</span><span class="c1"></span><span class="n">chunk</span><span class="p">.</span><span class="n">size</span> <span class="o">=</span> <span class="mh">0x20</span><span class="p">;</span>            <span class="c1">// This size should fall in the same fastbin
-</span><span class="c1"></span><span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">chunk</span><span class="p">.</span><span class="n">fd</span><span class="p">;</span>     <span class="c1">// Data starts here for an allocated chunk
-</span><span class="c1"></span><span class="n">strcpy</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#34;attacker&#39;s data&#34;</span><span class="p">);</span>
-
-<span class="c1">// Put the fast chunk back into fastbin
-</span><span class="c1"></span><span class="n">free</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
-<span class="c1">// Modify &#39;fd&#39; pointer of &#39;a&#39; to point to our forged chunk
-</span><span class="c1"></span><span class="o">*</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span><span class="n">a</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span><span class="p">)</span><span class="o">&amp;</span><span class="n">chunk</span><span class="p">;</span>
-<span class="c1">// Remove &#39;a&#39; from HEAD of fastbin
-</span><span class="c1">// Our forged chunk will now be at the HEAD of fastbin
-</span><span class="c1"></span><span class="n">malloc</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>                   <span class="c1">// Will return 0x219c010
-</span><span class="c1"></span>
-<span class="n">victim</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>          <span class="c1">// Points to 0x7ffc6de966a0
-</span><span class="c1"></span><span class="n">printf</span><span class="p">(</span><span class="s">&#34;%s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">victim</span><span class="p">);</span>       <span class="c1">// Prints &#34;attacker&#39;s data&#34; !!
-</span></code></pre></div><p>其中，forged chunk的大小参数设置为0x20，以便绕过安全检查 &lsquo;malloc():memory corruption(fast)'，为了检查chunk的大小是否落在特定fast bin的范围内。此外，从上述程序可以知道，victim指向forged chunk前面的 0x10(0x8+0x8) 字节，即allocated chunk的数据从<code>fd</code>指针开始。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">forged_chunk</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">size_t</span> <span class="n">prev_size</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">size_t</span> <span class="n">size</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">forged_chunk</span> <span class="o">*</span><span class="n">fd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">forged_chunk</span> <span class="o">*</span><span class="n">bck</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>               <span class="c1">// padding
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// First grab a fast chunk
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">a</span> <span class="o">=</span> <span class="nf">malloc</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>               <span class="c1">// &#39;a&#39; points to 0x219c010
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Create a forged chunk
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="n">forged_chunk</span> <span class="n">chunk</span><span class="p">;</span>    <span class="c1">// At address 0x7ffc6de96690
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">chunk</span><span class="p">.</span><span class="n">size</span> <span class="o">=</span> <span class="mh">0x20</span><span class="p">;</span>            <span class="c1">// This size should fall in the same fastbin
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">chunk</span><span class="p">.</span><span class="n">fd</span><span class="p">;</span>     <span class="c1">// Data starts here for an allocated chunk
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nf">strcpy</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&#34;attacker&#39;s data&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Put the fast chunk back into fastbin
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nf">free</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Modify &#39;fd&#39; pointer of &#39;a&#39; to point to our forged chunk
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="o">*</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span> <span class="o">*</span><span class="p">)</span><span class="n">a</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">long</span> <span class="kt">long</span><span class="p">)</span><span class="o">&amp;</span><span class="n">chunk</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Remove &#39;a&#39; from HEAD of fastbin
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Our forged chunk will now be at the HEAD of fastbin
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nf">malloc</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>                   <span class="c1">// Will return 0x219c010
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="n">victim</span> <span class="o">=</span> <span class="nf">malloc</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>          <span class="c1">// Points to 0x7ffc6de966a0
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nf">printf</span><span class="p">(</span><span class="s">&#34;%s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">victim</span><span class="p">);</span>       <span class="c1">// Prints &#34;attacker&#39;s data&#34; !!
+</span></span></span></code></pre></div><p>其中，forged chunk的大小参数设置为0x20，以便绕过安全检查 &lsquo;malloc():memory corruption(fast)&rsquo;，为了检查chunk的大小是否落在特定fast bin的范围内。此外，从上述程序可以知道，victim指向forged chunk前面的 0x10(0x8+0x8) 字节，即allocated chunk的数据从<code>fd</code>指针开始。</p>
 <p><br>
 <strong>fast bin链表状态变化</strong></p>
 <p>不同操作后对应fast bin链表的状态变化如下：</p>
@@ -168,7 +167,7 @@
 </div>
 </article></div>
             </main><footer class="footer">
-        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.118.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
                 </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
         </div>
     </footer></div>

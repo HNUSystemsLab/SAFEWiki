@@ -10,7 +10,6 @@
 <meta property="og:url" content="/posts/1-heap%E5%9F%BA%E7%A1%80/heap%E5%9F%BA%E7%A1%802-malloc_state/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
 <meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
-
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="heap基础 2/6: malloc_state"/>
 <meta name="twitter:description" content="malloc_state malloc_state展示了Arena标头的详细信息。主线程的Arena是一个全局变量，而不是heap段的一部分。其他线程的 Arena 标头（ma"/>
@@ -84,44 +83,42 @@
 </nav></div>
             </div><div class="content" id="content"><h2 id="malloc_state">malloc_state</h2>
 <p><code>malloc_state</code>展示了Arena标头的详细信息。主线程的Arena是一个全局变量，而不是heap段的一部分。其他线程的 Arena 标头（<code>malloc_state</code>结构）本身存储在heap段中。非主要的Arena可以有多个与它们关联的heap，这里的“heap”是指使用的内部结构而不是heap段。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">struct</span> <span class="n">malloc_state</span>
-<span class="p">{</span>
-  <span class="cm">/* Serialize access.  */</span>
-  <span class="n">__libc_lock_define</span> <span class="p">(,</span> <span class="n">mutex</span><span class="p">);</span>
-  <span class="cm">/* Flags (formerly in max_fast).  */</span>
-  <span class="kt">int</span> <span class="n">flags</span><span class="p">;</span>
-
-  <span class="cm">/* Fastbins */</span>
-  <span class="n">mfastbinptr</span> <span class="n">fastbinsY</span><span class="p">[</span><span class="n">NFASTBINS</span><span class="p">];</span>
-  <span class="cm">/* Base of the topmost chunk -- not otherwise kept in a bin */</span>
-  <span class="n">mchunkptr</span> <span class="n">top</span><span class="p">;</span>
-  <span class="cm">/* The remainder from the most recent split of a small request */</span>
-  <span class="n">mchunkptr</span> <span class="n">last_remainder</span><span class="p">;</span>
-  <span class="cm">/* Normal bins packed as described above */</span>
-  <span class="n">mchunkptr</span> <span class="n">bins</span><span class="p">[</span><span class="n">NBINS</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span><span class="p">];</span>
-
-  <span class="cm">/* Bitmap of bins */</span>
-  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">binmap</span><span class="p">[</span><span class="n">BINMAPSIZE</span><span class="p">];</span>
-
-  <span class="cm">/* Linked list */</span>
-  <span class="k">struct</span> <span class="n">malloc_state</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
-  <span class="cm">/* Linked list for free arenas.  Access to this field is serialized
-</span><span class="cm">     by free_list_lock in arena.c.  */</span>
-  <span class="k">struct</span> <span class="n">malloc_state</span> <span class="o">*</span><span class="n">next_free</span><span class="p">;</span>
-  <span class="cm">/* Number of threads attached to this arena.  0 if the arena is on
-</span><span class="cm">     the free list.  Access to this field is serialized by
-</span><span class="cm">     free_list_lock in arena.c.  */</span>
-
-  <span class="n">INTERNAL_SIZE_T</span> <span class="n">attached_threads</span><span class="p">;</span>
-  <span class="cm">/* Memory allocated from the system in this arena.  */</span>
-  <span class="n">INTERNAL_SIZE_T</span> <span class="n">system_mem</span><span class="p">;</span>
-  <span class="n">INTERNAL_SIZE_T</span> <span class="n">max_system_mem</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_state</span> <span class="o">*</span><span class="n">mstate</span><span class="p">;</span>
-
-
-</code></pre></div></div><div class="post-footer" id="post-footer">
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">malloc_state</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Serialize access.  */</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">__libc_lock_define</span> <span class="p">(,</span> <span class="n">mutex</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Flags (formerly in max_fast).  */</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">flags</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Fastbins */</span>
+</span></span><span class="line"><span class="cl">  <span class="n">mfastbinptr</span> <span class="n">fastbinsY</span><span class="p">[</span><span class="n">NFASTBINS</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Base of the topmost chunk -- not otherwise kept in a bin */</span>
+</span></span><span class="line"><span class="cl">  <span class="n">mchunkptr</span> <span class="n">top</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/* The remainder from the most recent split of a small request */</span>
+</span></span><span class="line"><span class="cl">  <span class="n">mchunkptr</span> <span class="n">last_remainder</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Normal bins packed as described above */</span>
+</span></span><span class="line"><span class="cl">  <span class="n">mchunkptr</span> <span class="n">bins</span><span class="p">[</span><span class="n">NBINS</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Bitmap of bins */</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">binmap</span><span class="p">[</span><span class="n">BINMAPSIZE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Linked list */</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">malloc_state</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Linked list for free arenas.  Access to this field is serialized
+</span></span></span><span class="line"><span class="cl"><span class="cm">     by free_list_lock in arena.c.  */</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">malloc_state</span> <span class="o">*</span><span class="n">next_free</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Number of threads attached to this arena.  0 if the arena is on
+</span></span></span><span class="line"><span class="cl"><span class="cm">     the free list.  Access to this field is serialized by
+</span></span></span><span class="line"><span class="cl"><span class="cm">     free_list_lock in arena.c.  */</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">INTERNAL_SIZE_T</span> <span class="n">attached_threads</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="cm">/* Memory allocated from the system in this arena.  */</span>
+</span></span><span class="line"><span class="cl">  <span class="n">INTERNAL_SIZE_T</span> <span class="n">system_mem</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">INTERNAL_SIZE_T</span> <span class="n">max_system_mem</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">malloc_state</span> <span class="o">*</span><span class="n">mstate</span><span class="p">;</span>
+</span></span></code></pre></div></div><div class="post-footer" id="post-footer">
     <div class="post-info">
         <div class="post-info-line">
             <div class="post-info-mod">
@@ -147,7 +144,7 @@
 </div>
 </article></div>
             </main><footer class="footer">
-        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.118.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
                 </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
         </div>
     </footer></div>

