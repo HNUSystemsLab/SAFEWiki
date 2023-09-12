@@ -7,12 +7,12 @@
             <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate>
             <atom:link href="/index.xml" rel="self" type="application/rss+xml" />
         <item>
-    <title>CVE测试工具</title>
+    <title>CVE测试工具 </title>
     <link>/posts/5-cve/cve-2022-0847-the-dirty-pipe-vulnerability/</link>
     <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
     <author>admin</author>
     <guid>/posts/5-cve/cve-2022-0847-the-dirty-pipe-vulnerability/</guid>
-    <description><![CDATA[CVE-2022-0847: The Dirty Pipe Vulnerability 4 参考链接 [1] https://dirtypipe.cm4all.com/ [2] https://github.com/Arinerron/CVE-2022-0847-DirtyPipe-Exploit]]></description>
+    <description><![CDATA[Tool(s) Required： All of the tools used are free and could be downloaded from the URLs below.]]></description>
 </item>
 <item>
     <title>heap基础 0/6-new: malloc_chunk </title>
