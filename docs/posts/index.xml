@@ -5,7 +5,7 @@
         <description>所有文章 | 安全维基</description>
         <generator>Hugo -- gohugo.io</generator><language>zh-CN</language><managingEditor>admin@gmail-1.com (admin)</managingEditor>
             <webMaster>admin@gmail-1.com (admin)</webMaster><lastBuildDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</lastBuildDate><atom:link href="/posts/" rel="self" type="application/rss+xml" /><item>
-    <title>CVE: 2022-0847 The Dirty Pipe Vulnerability</title>
+    <title>CVE测试工具</title>
     <link>/posts/5-cve/cve-2022-0847-the-dirty-pipe-vulnerability/</link>
     <pubDate>Sun, 05 Feb 2023 15:36:08 &#43;0800</pubDate>
     <author>admin</author>
